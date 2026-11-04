@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import EntropyVisualizer from './EntropyVisualizer';
-import Bip39 from './Bip39';
+import EntropyVisualizer from './components/EntropyVisualizer';
+import Bip39 from './components/Bip39';
 
 export type Language = 'it' | 'en';
 export type Theme = 'light' | 'dark';

@@ -1,6 +1,6 @@
-import type { Language } from './App';
+import type { Language } from '../App';
 
-interface Bip39Props {
+interface EntropyVisualizerProps {
   lang: Language;
   onBack: () => void;
 }
@@ -9,26 +9,26 @@ const CONTENT = {
   it: {
     back: 'Torna alla home',
     close: 'Chiudi',
-    title: 'Strumento Ian Coleman',
-    subtitle: 'Conversione mnemonica e derivazione chiavi',
-    desc: 'Strumento standalone completo per la generazione di frasi seed BIP39 e il calcolo dei percorsi di derivazione per chiavi private e indirizzi.',
+    title: 'Visualizzatore di Entropia',
+    subtitle: "Generatore ed esploratore dell'entropia BIP39",
+    desc: "Modulo interattivo per comprendere e visualizzare l'entropia BIP39 attraverso lanci di monete, tiri di dadi e dati crittografici pseudocasuali.",
     statusNotice: 'Modulo in fase di sviluppo',
     placeholderNotice:
-      'Questa pagina ospiterà gli strumenti standalone per la generazione di seed BIP39 e la derivazione delle chiavi.',
+      'Questa pagina ospiterà gli strumenti interattivi per comprendere e visualizzare l’entropia BIP39.',
   },
   en: {
     back: 'Back to home',
     close: 'Close',
-    title: 'Ian Coleman Tool',
-    subtitle: 'BIP39 mnemonic and key derivation tool',
-    desc: 'Comprehensive standalone tool for BIP39 mnemonic seed generation, derivation paths, and address calculation.',
+    title: 'Entropy Visualizer',
+    subtitle: 'BIP39 entropy generator and visualizer',
+    desc: 'Interactive module to visualize and generate BIP39 entropy using coin flips, dice rolls, and cryptographic pseudorandom data.',
     statusNotice: 'Module under development',
     placeholderNotice:
-      'This page will host the standalone tools for BIP39 seed generation and key derivation.',
+      'This page will host interactive tools to understand and visualize BIP39 entropy.',
   },
 };
 
-export default function Bip39({ lang, onBack }: Bip39Props) {
+export default function EntropyVisualizer({ lang, onBack }: EntropyVisualizerProps) {
   const t = CONTENT[lang];
 
   return (
@@ -59,8 +59,8 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
         <div className="flex items-center gap-4 mb-4">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-bitpolito/10 dark:bg-white/15">
             <img
-              src="/icons/icon-key.svg"
-              alt="Key icon"
+              src="/icons/icon-microscope.svg"
+              alt="Microscope icon"
               className="w-6 h-6 object-contain dark:brightness-0 dark:invert"
             />
           </div>
