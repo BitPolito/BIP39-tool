@@ -1,4 +1,5 @@
 import type { Language } from '../App';
+import iconMicroscope from '../assets/icons/icon-microscope.svg';
 
 interface EntropyVisualizerProps {
   lang: Language;
@@ -59,7 +60,7 @@ export default function EntropyVisualizer({ lang, onBack }: EntropyVisualizerPro
         <div className="flex items-center gap-4 mb-4">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-bitpolito/10 dark:bg-white/15">
             <img
-              src="/icons/icon-microscope.svg"
+              src={iconMicroscope}
               alt="Microscope icon"
               className="w-6 h-6 object-contain dark:brightness-0 dark:invert"
             />
