@@ -1,0 +1,106 @@
+import type { Language } from '../App';
+
+interface EntropyVisualizerProps {
+  lang: Language;
+  onBack: () => void;
+}
+
+const CONTENT = {
+  it: {
+    back: 'Torna alla home',
+    close: 'Chiudi',
+    title: 'Visualizzatore di Entropia',
+    subtitle: "Generatore ed esploratore dell'entropia BIP39",
+    desc: "Modulo interattivo per comprendere e visualizzare l'entropia BIP39 attraverso lanci di monete, tiri di dadi e dati crittografici pseudocasuali.",
+    statusNotice: 'Modulo in fase di sviluppo',
+    placeholderNotice:
+      'Questa pagina ospiterà gli strumenti interattivi per comprendere e visualizzare l’entropia BIP39.',
+  },
+  en: {
+    back: 'Back to home',
+    close: 'Close',
+    title: 'Entropy Visualizer',
+    subtitle: 'BIP39 entropy generator and visualizer',
+    desc: 'Interactive module to visualize and generate BIP39 entropy using coin flips, dice rolls, and cryptographic pseudorandom data.',
+    statusNotice: 'Module under development',
+    placeholderNotice:
+      'This page will host interactive tools to understand and visualize BIP39 entropy.',
+  },
+};
+
+export default function EntropyVisualizer({ lang, onBack }: EntropyVisualizerProps) {
+  const t = CONTENT[lang];
+
+  return (
+    <main className="flex-1 flex flex-col py-8 sm:py-10 animate-in fade-in duration-200">
+      {/* Top Navigation */}
+      <div className="mb-6 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-white dark:bg-white/10 border border-bitpolito/25 dark:border-white/40 shadow-sm hover:bg-bitpolito hover:text-white hover:border-bitpolito dark:hover:bg-white dark:hover:text-bitpolito dark:hover:border-white transition-all duration-200 cursor-pointer group"
+        >
+          <span className="transition-transform duration-200 group-hover:-translate-x-0.5">←</span>
+          <span>{t.back}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label={t.close}
+          className="p-1.5 rounded-lg hover:bg-bitpolito/10 dark:hover:bg-white/15 text-bitpolito dark:text-white transition-colors duration-150 cursor-pointer text-lg leading-none"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Main card */}
+      <div className="w-full bg-white dark:bg-white/10 border-2 border-bitpolito dark:border-white rounded-3xl p-6 sm:p-10 shadow-lg text-bitpolito dark:text-white transition-colors duration-250 flex flex-col">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-bitpolito/10 dark:bg-white/15">
+            <img
+              src="/icons/icon-microscope.svg"
+              alt="Microscope icon"
+              className="w-6 h-6 object-contain dark:brightness-0 dark:invert"
+            />
+          </div>
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-bitpolito dark:text-white">
+              {t.title}
+            </h2>
+            <p className="text-xs sm:text-sm font-medium text-bitpolito/70 dark:text-white/80">
+              {t.subtitle}
+            </p>
+          </div>
+        </div>
+
+        <p className="text-sm sm:text-base leading-relaxed text-bitpolito/80 dark:text-white/90 mb-5">
+          {t.desc}
+        </p>
+
+        <div className="mb-6">
+          <span className="inline-block text-xs font-bold px-3.5 py-1.5 rounded-full bg-bitpolito/10 text-bitpolito border border-bitpolito/20 dark:bg-white/15 dark:text-white dark:border-white/30">
+            {t.statusNotice}
+          </span>
+        </div>
+
+        {/* Placeholder container */}
+        <div className="p-8 border border-dashed border-bitpolito/30 dark:border-white/30 rounded-2xl bg-bitpolito/5 dark:bg-white/5 flex flex-col items-center justify-center text-center my-4">
+          <p className="text-xs sm:text-sm text-bitpolito/70 dark:text-white/70">
+            {t.placeholderNotice}
+          </p>
+        </div>
+
+        <div className="flex justify-end mt-4">
+          <button
+            type="button"
+            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-bitpolito text-white hover:bg-bitpolito/90 dark:bg-white dark:text-bitpolito dark:hover:bg-white/90 transition-all duration-200 cursor-pointer shadow-md"
+            onClick={onBack}
+          >
+            {t.close}
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
