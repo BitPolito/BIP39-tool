@@ -8,34 +8,79 @@ interface EntropyDiceProps {
   onBitsGenerated: (bits: string, sourceInfo: string) => void;
 }
 
-const TEXT = {
-  title: '2. Six-Sided Dice (D6 Rolls)',
-  desc: 'Write down the results of rolling a physical 6-sided die (D6).',
-  rawInputLabel: 'Write down your dice roll sequence (digits 1 to 6):',
-  inputPlaceholder: 'E.g.: 164235612453...',
-  methodLabel: 'Entropy Extraction Method (The D6 Bits Problem):',
-  methodSha256: 'Cryptographic SHA-256 Hashing (Coldcard / Ian Coleman standard)',
-  methodSha256Desc:
-    'Each D6 roll contains log₂(6) ≈ 2.585 bits of entropy. Only ~50 rolls are needed for 128 bits, or ~100 rolls for 256 bits. SHA-256 hashing uniformly distributes the entropy across 256 bits.',
-  methodModulo2: 'Modulo 2 Mapping (Even / Odd)',
-  methodModulo2Desc:
-    'Odd rolls (1, 3, 5) = 0, Even rolls (2, 4, 6) = 1. Each roll produces exactly 1 bit (128 or 256 rolls needed).',
-  methodRejection: 'Rejection Sampling (Power-of-2 Unbiased Mapping)',
-  methodRejectionDesc:
-    'A 6-sided die is not a power of 2. By mapping 1=00, 2=01, 3=10, 4=11 and DISCARDING rolls 5 & 6, mathematical bias is eliminated with 66.7% efficiency.',
-  btnClear: 'Clear',
-  btnUndo: 'Undo',
-  btnSample: 'Load Sample',
-  statsRolls: 'Rolls entered',
-  statsBits: 'Entropy bits provided',
-  statsRawEntropy: 'Estimated physical entropy',
-  discardedRolls: 'Discarded rolls (5 & 6)',
-  hashPreview: 'SHA-256 hash of rolls:',
-  statusTargetReached: 'Target reached',
-  statusCollecting: 'Collecting rolls',
-  biasAdviceTitle: 'Detecting dice bias:',
-  biasAdviceText:
-    'Standard hobby dice with drilled pips can have physical bias (face 6 is lighter than face 1). Use precision casino dice or record at least 50-100 rolls combined with SHA-256.',
+const CONTENT = {
+  it: {
+    title: '2. Dadi a 6 Facce (Lanci D6)',
+    desc: 'Annota i risultati del lancio di un dado fisico a 6 facce (D6).',
+    rawInputLabel: 'Annota la sequenza dei lanci del dado (cifre da 1 a 6):',
+    inputPlaceholder: 'Es.: 164235612453...',
+    methodLabel: 'Metodo di estrazione dell’entropia (Il problema dei bit del D6):',
+    methodSha256Title: 'Hash SHA-256',
+    methodStandardBadge: 'Standard',
+    methodSha256Desc:
+      'Ogni lancio di un D6 contiene log₂(6) ≈ 2,585 bit di entropia. Bastano ~50 lanci per 128 bit, o ~100 lanci per 256 bit. L’hashing SHA-256 distribuisce uniformemente l’entropia su 256 bit.',
+    methodSha256RollsNeeded: (rolls: number) => `~${rolls} lanci necessari`,
+    methodModulo2Title: 'Modulo 2 (Pari/Dispari)',
+    methodModulo2Desc:
+      'Lanci dispari (1, 3, 5) = 0, lanci pari (2, 4, 6) = 1. Ogni lancio produce esattamente 1 bit (necessari 128 o 256 lanci).',
+    methodModulo2RollsNeeded: (rolls: number) => `${rolls} lanci necessari`,
+    methodRejectionTitle: 'Campionamento per Rigetto',
+    methodRejectionDesc:
+      'Un dado a 6 facce non è una potenza di 2. Mappando 1=00, 2=01, 3=10, 4=11 e SCARTANDO i lanci 5 e 6, il bias matematico viene eliminato con un’efficienza del 66,7%.',
+    methodRejectionRollsNeeded: (rolls: number) => `~${rolls} lanci necessari`,
+    btnClear: 'Cancella',
+    btnUndo: 'Annulla',
+    btnSample: 'Carica Esempio',
+    statsRolls: 'Lanci inseriti',
+    statsBits: 'Bit di entropia forniti',
+    statsRawEntropy: 'Entropia fisica stimata',
+    discardedRolls: 'Lanci scartati (5 e 6)',
+    hashPreview: 'Hash SHA-256 dei lanci:',
+    statusLabel: 'Stato:',
+    statusTargetReached: 'Target raggiunto',
+    statusCollecting: 'Raccolta lanci',
+    biasAdviceTitle: 'Rilevamento del bias dei dadi:',
+    biasAdviceText:
+      'I normali dadi da gioco con puntini incisi possono presentare un bias fisico (la faccia 6 è più leggera della faccia 1). Usa dadi di precisione da casinò o registra almeno 50-100 lanci combinati con SHA-256.',
+    sourceInfo: (method: string, rolls: number, bits: number) =>
+      `Dadi (${method}: ${rolls} lanci -> ${bits} bit)`,
+  },
+  en: {
+    title: '2. Six-Sided Dice (D6 Rolls)',
+    desc: 'Write down the results of rolling a physical 6-sided die (D6).',
+    rawInputLabel: 'Write down your dice roll sequence (digits 1 to 6):',
+    inputPlaceholder: 'E.g.: 164235612453...',
+    methodLabel: 'Entropy Extraction Method (The D6 Bits Problem):',
+    methodSha256Title: 'SHA-256 Hash',
+    methodStandardBadge: 'Standard',
+    methodSha256Desc:
+      'Each D6 roll contains log₂(6) ≈ 2.585 bits of entropy. Only ~50 rolls are needed for 128 bits, or ~100 rolls for 256 bits. SHA-256 hashing uniformly distributes the entropy across 256 bits.',
+    methodSha256RollsNeeded: (rolls: number) => `~${rolls} rolls needed`,
+    methodModulo2Title: 'Modulo 2 (Even/Odd)',
+    methodModulo2Desc:
+      'Odd rolls (1, 3, 5) = 0, Even rolls (2, 4, 6) = 1. Each roll produces exactly 1 bit (128 or 256 rolls needed).',
+    methodModulo2RollsNeeded: (rolls: number) => `${rolls} rolls needed`,
+    methodRejectionTitle: 'Rejection Sampling',
+    methodRejectionDesc:
+      'A 6-sided die is not a power of 2. By mapping 1=00, 2=01, 3=10, 4=11 and DISCARDING rolls 5 & 6, mathematical bias is eliminated with 66.7% efficiency.',
+    methodRejectionRollsNeeded: (rolls: number) => `~${rolls} rolls needed`,
+    btnClear: 'Clear',
+    btnUndo: 'Undo',
+    btnSample: 'Load Sample',
+    statsRolls: 'Rolls entered',
+    statsBits: 'Entropy bits provided',
+    statsRawEntropy: 'Estimated physical entropy',
+    discardedRolls: 'Discarded rolls (5 & 6)',
+    hashPreview: 'SHA-256 hash of rolls:',
+    statusLabel: 'Status:',
+    statusTargetReached: 'Target reached',
+    statusCollecting: 'Collecting rolls',
+    biasAdviceTitle: 'Detecting dice bias:',
+    biasAdviceText:
+      'Standard hobby dice with drilled pips can have physical bias (face 6 is lighter than face 1). Use precision casino dice or record at least 50-100 rolls combined with SHA-256.',
+    sourceInfo: (method: string, rolls: number, bits: number) =>
+      `Dice (${method}: ${rolls} rolls -> ${bits} bits)`,
+  },
 };
 
 const QUICK_DICE = [
@@ -47,8 +92,12 @@ const QUICK_DICE = [
   { val: '6', symbol: '⚅' },
 ];
 
-export default function EntropyDice({ targetBits, onBitsGenerated }: EntropyDiceProps) {
-  const t = TEXT;
+export default function EntropyDice({
+  lang = 'en',
+  targetBits,
+  onBitsGenerated,
+}: EntropyDiceProps) {
+  const t = CONTENT[lang];
   const [rawRolls, setRawRolls] = useState<string>('');
   const [method, setMethod] = useState<DiceExtractionMethod>('sha256');
 
@@ -57,7 +106,7 @@ export default function EntropyDice({ targetBits, onBitsGenerated }: EntropyDice
   const handleUpdate = (rolls: string, selectedMethod: DiceExtractionMethod) => {
     setRawRolls(rolls);
     const result = extractEntropyFromDice(rolls, selectedMethod, targetBits);
-    const info = `Dice (${selectedMethod.toUpperCase()}: ${result.rollCount} rolls -> ${result.bits.length} bits)`;
+    const info = t.sourceInfo(selectedMethod.toUpperCase(), result.rollCount, result.bits.length);
     onBitsGenerated(result.bits, info);
   };
 
@@ -140,9 +189,9 @@ export default function EntropyDice({ targetBits, onBitsGenerated }: EntropyDice
           >
             <div>
               <div className="font-bold text-xs sm:text-sm flex items-center justify-between">
-                <span>SHA-256 Hash</span>
+                <span>{t.methodSha256Title}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/30 text-amber-900 dark:text-amber-200">
-                  Standard
+                  {t.methodStandardBadge}
                 </span>
               </div>
               <p
@@ -154,7 +203,7 @@ export default function EntropyDice({ targetBits, onBitsGenerated }: EntropyDice
               </p>
             </div>
             <div className="text-[11px] font-mono mt-3 font-semibold">
-              ~{Math.ceil(targetBits / Math.log2(6))} rolls needed
+              {t.methodSha256RollsNeeded(Math.ceil(targetBits / Math.log2(6)))}
             </div>
           </button>
 
@@ -169,7 +218,7 @@ export default function EntropyDice({ targetBits, onBitsGenerated }: EntropyDice
             }`}
           >
             <div>
-              <div className="font-bold text-xs sm:text-sm">Modulo 2 (Even/Odd)</div>
+              <div className="font-bold text-xs sm:text-sm">{t.methodModulo2Title}</div>
               <p
                 className={`text-[11px] leading-relaxed mt-2 ${
                   method === 'modulo2' ? 'opacity-90' : 'opacity-70'
@@ -178,7 +227,9 @@ export default function EntropyDice({ targetBits, onBitsGenerated }: EntropyDice
                 {t.methodModulo2Desc}
               </p>
             </div>
-            <div className="text-[11px] font-mono mt-3 font-semibold">{targetBits} rolls needed</div>
+            <div className="text-[11px] font-mono mt-3 font-semibold">
+              {t.methodModulo2RollsNeeded(targetBits)}
+            </div>
           </button>
 
           {/* Method 3: Rejection Sampling */}
@@ -192,7 +243,7 @@ export default function EntropyDice({ targetBits, onBitsGenerated }: EntropyDice
             }`}
           >
             <div>
-              <div className="font-bold text-xs sm:text-sm">Rejection Sampling</div>
+              <div className="font-bold text-xs sm:text-sm">{t.methodRejectionTitle}</div>
               <p
                 className={`text-[11px] leading-relaxed mt-2 ${
                   method === 'rejection' ? 'opacity-90' : 'opacity-70'
@@ -202,7 +253,7 @@ export default function EntropyDice({ targetBits, onBitsGenerated }: EntropyDice
               </p>
             </div>
             <div className="text-[11px] font-mono mt-3 font-semibold">
-              ~{Math.ceil((targetBits / 2) * 1.5)} rolls needed
+              {t.methodRejectionRollsNeeded(Math.ceil((targetBits / 2) * 1.5))}
             </div>
           </button>
         </div>
@@ -289,7 +340,7 @@ export default function EntropyDice({ targetBits, onBitsGenerated }: EntropyDice
             </div>
           ) : (
             <div className="p-2 rounded-lg bg-bitpolito/5 dark:bg-white/5">
-              <span className="text-bitpolito/70 dark:text-white/70 block">Status:</span>
+              <span className="text-bitpolito/70 dark:text-white/70 block">{t.statusLabel}</span>
               <span className="font-mono font-bold text-sm">
                 {extraction.bits.length >= targetBits ? t.statusTargetReached : t.statusCollecting}
               </span>

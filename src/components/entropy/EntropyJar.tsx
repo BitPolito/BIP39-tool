@@ -8,36 +8,85 @@ interface EntropyJarProps {
   onBitsGenerated: (bits: string, sourceInfo: string) => void;
 }
 
-const TEXT = {
-  title: '3. Entropy Jar (Urn Model)',
-  desc: 'Write down tokens, marbles, or numbered chips drawn from a physical jar or urn.',
-  jarTypeLabel: 'Type of tokens in your physical jar:',
-  typeHex: 'Hexadecimal Tokens (16 tokens: 0-F)',
-  typeHexDesc: 'Each draw provides exactly 4 bits (one nibble). Only 32 draws needed for 128 bits!',
-  typeBinary: 'Binary Marbles (2 colors: 0/1 or Black/White)',
-  typeBinaryDesc: 'Each draw yields exactly 1 bit (128 or 256 draws needed).',
-  typeDecimal: 'Decimal Chips (10 chips: 0-9)',
-  typeDecimalDesc: 'Each draw yields log₂(10) ≈ 3.32 bits. Processed via cryptographic SHA-256 hash.',
-  rawInputLabel: 'Write down the sequence of drawn tokens here:',
-  inputPlaceholderHex: 'E.g.: A3F82C9E4B...',
-  inputPlaceholderBin: 'E.g.: 011010011...',
-  btnClear: 'Clear',
-  btnUndo: 'Undo',
-  btnSample: 'Load Sample',
-  statsDraws: 'Draws entered',
-  statsBits: 'Entropy bits provided',
-  statsEntropy: 'Estimated physical entropy',
-  replacementAdviceTitle: 'Fundamental urn rule:',
-  replacementAdviceText:
-    'Drawing with replacement: after drawing and writing down a token, always return it to the jar and shake vigorously before the next draw, ensuring independent and identically distributed (IID) entropy.',
+const CONTENT = {
+  it: {
+    title: '3. Vaso di Entropia (Modello a Urna)',
+    desc: 'Annota gettoni, biglie o tessere numerate estratte da un vaso o un’urna fisica.',
+    jarTypeLabel: 'Tipo di gettoni nel vaso fisico:',
+    typeHex: 'Gettoni Esadecimali (16 gettoni: 0-F)',
+    typeHexBadge: '4 bit/estrazione',
+    typeHexDesc: 'Ogni estrazione fornisce esattamente 4 bit (un nibble). Bastano solo 32 estrazioni per 128 bit!',
+    typeHexDrawsNeeded: (draws: number, bits: number) => `${draws} estrazioni per ${bits} bit`,
+    typeBinary: 'Biglie Binarie (2 colori: 0/1 o Nero/Bianco)',
+    typeBinaryBadge: '1 bit/estrazione',
+    typeBinaryDesc: 'Ogni estrazione produce esattamente 1 bit (necessarie 128 o 256 estrazioni).',
+    typeBinaryDrawsNeeded: (draws: number, bits: number) => `${draws} estrazioni per ${bits} bit`,
+    typeDecimal: 'Tessere Decimali (10 tessere: 0-9)',
+    typeDecimalBadge: 'SHA-256',
+    typeDecimalDesc: 'Ogni estrazione produce log₂(10) ≈ 3,32 bit. Elaborati tramite hash crittografico SHA-256.',
+    typeDecimalDrawsNeeded: (draws: number) => `~${draws} estrazioni necessarie`,
+    rawInputLabel: 'Annota qui la sequenza dei gettoni estratti:',
+    inputPlaceholderHex: 'Es.: A3F82C9E4B...',
+    inputPlaceholderBin: 'Es.: 011010011...',
+    inputPlaceholderDec: 'Es.: 8492017356...',
+    btnClear: 'Cancella',
+    btnUndo: 'Annulla',
+    btnSample: 'Carica Esempio',
+    statsDraws: 'Estrazioni inserite',
+    statsBits: 'Bit di entropia forniti',
+    statsEntropy: 'Entropia fisica stimata',
+    replacementAdviceTitle: 'Regola fondamentale dell’urna:',
+    replacementAdviceText:
+      'Estrazione con reinserimento: dopo aver estratto e annotato un gettone, rimettilo sempre nel vaso e agita energicamente prima della successiva estrazione, garantendo un’entropia indipendente e identicamente distribuita (IID).',
+    sourceInfo: (type: string, count: number, bits: number) =>
+      `Vaso di Entropia (${type}: ${count} estrazioni -> ${bits} bit)`,
+    sourceInfoEmpty: (type: string) => `Vaso di Entropia (${type})`,
+  },
+  en: {
+    title: '3. Entropy Jar (Urn Model)',
+    desc: 'Write down tokens, marbles, or numbered chips drawn from a physical jar or urn.',
+    jarTypeLabel: 'Type of tokens in your physical jar:',
+    typeHex: 'Hexadecimal Tokens (16 tokens: 0-F)',
+    typeHexBadge: '4 bits/draw',
+    typeHexDesc: 'Each draw provides exactly 4 bits (one nibble). Only 32 draws needed for 128 bits!',
+    typeHexDrawsNeeded: (draws: number, bits: number) => `${draws} draws for ${bits} bits`,
+    typeBinary: 'Binary Marbles (2 colors: 0/1 or Black/White)',
+    typeBinaryBadge: '1 bit/draw',
+    typeBinaryDesc: 'Each draw yields exactly 1 bit (128 or 256 draws needed).',
+    typeBinaryDrawsNeeded: (draws: number, bits: number) => `${draws} draws for ${bits} bits`,
+    typeDecimal: 'Decimal Chips (10 chips: 0-9)',
+    typeDecimalBadge: 'SHA-256',
+    typeDecimalDesc: 'Each draw yields log₂(10) ≈ 3.32 bits. Processed via cryptographic SHA-256 hash.',
+    typeDecimalDrawsNeeded: (draws: number) => `~${draws} draws needed`,
+    rawInputLabel: 'Write down the sequence of drawn tokens here:',
+    inputPlaceholderHex: 'E.g.: A3F82C9E4B...',
+    inputPlaceholderBin: 'E.g.: 011010011...',
+    inputPlaceholderDec: 'E.g.: 8492017356...',
+    btnClear: 'Clear',
+    btnUndo: 'Undo',
+    btnSample: 'Load Sample',
+    statsDraws: 'Draws entered',
+    statsBits: 'Entropy bits provided',
+    statsEntropy: 'Estimated physical entropy',
+    replacementAdviceTitle: 'Fundamental urn rule:',
+    replacementAdviceText:
+      'Drawing with replacement: after drawing and writing down a token, always return it to the jar and shake vigorously before the next draw, ensuring independent and identically distributed (IID) entropy.',
+    sourceInfo: (type: string, count: number, bits: number) =>
+      `Entropy Jar (${type}: ${count} draws -> ${bits} bits)`,
+    sourceInfoEmpty: (type: string) => `Entropy Jar (${type})`,
+  },
 };
 
 const HEX_TOKENS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'];
 const BINARY_TOKENS = ['0', '1'];
 const DECIMAL_TOKENS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
-export default function EntropyJar({ targetBits, onBitsGenerated }: EntropyJarProps) {
-  const t = TEXT;
+export default function EntropyJar({
+  lang = 'en',
+  targetBits,
+  onBitsGenerated,
+}: EntropyJarProps) {
+  const t = CONTENT[lang];
   const [jarType, setJarType] = useState<JarType>('hex');
   const [tokens, setTokens] = useState<string[]>([]);
   const [rawText, setRawText] = useState<string>('');
@@ -50,7 +99,7 @@ export default function EntropyJar({ targetBits, onBitsGenerated }: EntropyJarPr
     setTokens(newTokens);
     setRawText(newTokens.join(''));
     const result = extractEntropyFromJar(newTokens, type, targetBits);
-    const info = `Entropy Jar (${type.toUpperCase()}: ${result.tokenCount} draws -> ${result.bits.length} bits)`;
+    const info = t.sourceInfo(type.toUpperCase(), result.tokenCount, result.bits.length);
     onBitsGenerated(result.bits, info);
   };
 
@@ -73,14 +122,14 @@ export default function EntropyJar({ targetBits, onBitsGenerated }: EntropyJarPr
 
     setTokens(parsed);
     const result = extractEntropyFromJar(parsed, jarType, targetBits);
-    onBitsGenerated(result.bits, `Entropy Jar (${jarType}: ${parsed.length} draws)`);
+    onBitsGenerated(result.bits, t.sourceInfo(jarType, parsed.length, result.bits.length));
   };
 
   const handleTypeChange = (newType: JarType) => {
     setJarType(newType);
     setTokens([]);
     setRawText('');
-    onBitsGenerated('', `Entropy Jar (${newType})`);
+    onBitsGenerated('', t.sourceInfoEmpty(newType));
   };
 
   const handleUndo = () => {
@@ -106,6 +155,12 @@ export default function EntropyJar({ targetBits, onBitsGenerated }: EntropyJarPr
   };
 
   const progressPercent = Math.min(100, (extraction.bits.length / targetBits) * 100);
+
+  const getPlaceholder = () => {
+    if (jarType === 'hex') return t.inputPlaceholderHex;
+    if (jarType === 'binary') return t.inputPlaceholderBin;
+    return t.inputPlaceholderDec;
+  };
 
   return (
     <div className="space-y-5">
@@ -157,7 +212,7 @@ export default function EntropyJar({ targetBits, onBitsGenerated }: EntropyJarPr
               <div className="font-bold text-xs sm:text-sm flex items-center justify-between">
                 <span>{t.typeHex}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-400/30 text-emerald-900 dark:text-emerald-200">
-                  4 bits/draw
+                  {t.typeHexBadge}
                 </span>
               </div>
               <p
@@ -169,7 +224,7 @@ export default function EntropyJar({ targetBits, onBitsGenerated }: EntropyJarPr
               </p>
             </div>
             <div className="text-[11px] font-mono mt-3 font-semibold">
-              {targetBits / 4} draws for {targetBits} bits
+              {t.typeHexDrawsNeeded(targetBits / 4, targetBits)}
             </div>
           </button>
 
@@ -186,7 +241,7 @@ export default function EntropyJar({ targetBits, onBitsGenerated }: EntropyJarPr
               <div className="font-bold text-xs sm:text-sm flex items-center justify-between">
                 <span>{t.typeBinary}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/30 text-amber-900 dark:text-amber-200">
-                  1 bit/draw
+                  {t.typeBinaryBadge}
                 </span>
               </div>
               <p
@@ -198,7 +253,7 @@ export default function EntropyJar({ targetBits, onBitsGenerated }: EntropyJarPr
               </p>
             </div>
             <div className="text-[11px] font-mono mt-3 font-semibold">
-              {targetBits} draws for {targetBits} bits
+              {t.typeBinaryDrawsNeeded(targetBits, targetBits)}
             </div>
           </button>
 
@@ -215,7 +270,7 @@ export default function EntropyJar({ targetBits, onBitsGenerated }: EntropyJarPr
               <div className="font-bold text-xs sm:text-sm flex items-center justify-between">
                 <span>{t.typeDecimal}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-400/30 text-blue-900 dark:text-blue-200">
-                  SHA-256
+                  {t.typeDecimalBadge}
                 </span>
               </div>
               <p
@@ -227,7 +282,7 @@ export default function EntropyJar({ targetBits, onBitsGenerated }: EntropyJarPr
               </p>
             </div>
             <div className="text-[11px] font-mono mt-3 font-semibold">
-              ~{Math.ceil(targetBits / Math.log2(10))} draws needed
+              {t.typeDecimalDrawsNeeded(Math.ceil(targetBits / Math.log2(10)))}
             </div>
           </button>
         </div>
@@ -270,7 +325,7 @@ export default function EntropyJar({ targetBits, onBitsGenerated }: EntropyJarPr
           rows={3}
           value={rawText}
           onChange={handleTextChange}
-          placeholder={jarType === 'hex' ? t.inputPlaceholderHex : t.inputPlaceholderBin}
+          placeholder={getPlaceholder()}
           className="w-full font-mono text-sm p-3.5 rounded-xl bg-white dark:bg-white/5 border-2 border-bitpolito/30 dark:border-white/30 focus:border-bitpolito dark:focus:border-white focus:outline-none transition-colors duration-150 text-bitpolito dark:text-white break-all tracking-wider resize-y"
         />
 

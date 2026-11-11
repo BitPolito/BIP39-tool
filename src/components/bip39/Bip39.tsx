@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { Language } from '../App';
-import iconKey from '../assets/icons/icon-key.svg';
-import cowIconBlue from '../assets/bitpolito/cow-icon-blue.svg';
-import cowIconWhite from '../assets/bitpolito/cow-icon-white.svg';
-import { generateBip44Wallet, type Bip44Wallet, type AddressLeafData } from '../crypto/bip44';
+import type { Language } from '../../App';
+import iconKey from '../../assets/icons/icon-key.svg';
+import cowIconBlue from '../../assets/bitpolito/cow-icon-blue.svg';
+import cowIconWhite from '../../assets/bitpolito/cow-icon-white.svg';
+import { generateBip44Wallet, type Bip44Wallet, type AddressLeafData } from '../../crypto/bip44';
 import Bip44Tree from './Bip44Tree';
 
 interface Bip39Props {

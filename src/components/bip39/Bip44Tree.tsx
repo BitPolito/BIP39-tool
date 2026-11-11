@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { Language } from '../App';
-import type { IntermediateNodeData, AddressLeafData } from '../crypto/bip44';
+import type { Language } from '../../App';
+import type { IntermediateNodeData, AddressLeafData } from '../../crypto/bip44';
 
 interface Bip44TreeProps {
   lang: Language;

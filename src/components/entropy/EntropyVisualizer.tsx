@@ -1,5 +1,5 @@
-import type { Language } from '../App';
-import iconMicroscope from '../assets/icons/icon-microscope.svg';
+import type { Language } from '../../App';
+import iconMicroscope from '../../assets/icons/icon-microscope.svg';
 
 interface EntropyVisualizerProps {
   lang: Language;
@@ -16,6 +16,7 @@ const CONTENT = {
     statusNotice: 'Modulo in fase di sviluppo',
     placeholderNotice:
       'Questa pagina ospiterà gli strumenti interattivi per comprendere e visualizzare l’entropia BIP39.',
+    microscopeAlt: 'Icona microscopio',
   },
   en: {
     back: 'Back to home',
@@ -26,6 +27,7 @@ const CONTENT = {
     statusNotice: 'Module under development',
     placeholderNotice:
       'This page will host interactive tools to understand and visualize BIP39 entropy.',
+    microscopeAlt: 'Microscope icon',
   },
 };
 
@@ -61,7 +63,7 @@ export default function EntropyVisualizer({ lang, onBack }: EntropyVisualizerPro
           <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-bitpolito/10 dark:bg-white/15">
             <img
               src={iconMicroscope}
-              alt="Microscope icon"
+              alt={t.microscopeAlt}
               className="w-6 h-6 object-contain dark:brightness-0 dark:invert"
             />
           </div>

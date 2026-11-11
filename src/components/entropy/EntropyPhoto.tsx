@@ -13,28 +13,67 @@ interface EntropyPhotoProps {
   onBitsGenerated: (bits: string, sourceInfo: string) => void;
 }
 
-const TEXT = {
-  title: '4. Photo (Photo Entropy)',
-  desc: 'Write down or paste the entropy data obtained from a physical photo (64-character SHA-256 hex hash or hex sequence).',
-  inputLabel: 'Write down or paste your photo’s SHA-256 hash or hex string:',
-  inputPlaceholder: 'E.g.: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855...',
-  dropzoneText: 'Or drag & drop an image file (PNG/JPEG) to compute its local hash',
-  btnClear: 'Clear',
-  btnSample: 'Load Sample Hash',
-  statsChars: 'Hex characters',
-  statsBits: 'Entropy bits provided',
-  hashStatusValid: 'Valid SHA-256 hash (256 bits)',
-  hashStatusPartial: 'Partial string hashed via SHA-256',
-  lowEntropyWarningTitle: 'Warning: Low visual entropy detected!',
-  lowEntropyWarningDesc:
-    'The provided image shows near-zero color variation (flat solid color or pitch black). Ensure you use a photo rich in detail, varied textures, and sensor noise.',
-  biasAdviceTitle: 'Detecting bias in photos:',
-  biasAdviceText:
-    'Use a photo with sufficient visual detail, complex textures, or high-ISO sensor noise. Avoid completely black photos (lens covered), uniform solid backgrounds, or blank images, as they lack the physical entropy required for cryptographic security.',
+const CONTENT = {
+  it: {
+    title: '4. Foto (Entropia da Foto)',
+    desc: 'Annota o incolla i dati di entropia ottenuti da una foto reale (hash esadecimale SHA-256 da 64 caratteri o sequenza hex).',
+    inputLabel: 'Annota o incolla l’hash SHA-256 o la stringa esadecimale della foto:',
+    inputPlaceholder: 'Es.: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855...',
+    dropzoneText: 'Oppure trascina qui un file immagine (PNG/JPEG) per calcolarne l’hash in locale',
+    btnClear: 'Cancella',
+    btnUndo: 'Annulla',
+    btnSample: 'Carica Hash di Esempio',
+    samplePhotoInfo: 'Hash di esempio con alta entropia',
+    statsChars: 'Caratteri esadecimali',
+    statsBits: 'Bit di entropia forniti',
+    hashStatusValid: 'Hash SHA-256 valido (256 bit)',
+    hashStatusPartial: 'Stringa parziale elaborata con SHA-256',
+    lowEntropyWarningTitle: 'Attenzione: Bassa entropia visiva rilevata!',
+    lowEntropyWarningDesc:
+      'L’immagine fornita presenta una variazione cromatica quasi nulla (tinta unita o nero completo). Assicurati di utilizzare una foto ricca di dettagli, texture variegate e rumore del sensore.',
+    biasAdviceTitle: 'Rilevamento del bias nelle foto:',
+    biasAdviceText:
+      'Usa una foto con sufficiente dettaglio visivo, texture complesse o rumore del sensore ad alti ISO. Evita foto completamente nere (con obiettivo coperto), sfondi uniformi a tinta unita o immagini vuote, poiché sono prive dell’entropia fisica necessaria per la sicurezza crittografica.',
+    sourceInfo: (chars: number, bits: number) =>
+      `Foto (${chars} caratteri esadecimali -> ${bits} bit)`,
+    sourceInfoFile: (filename: string, bits: number) =>
+      `File foto: ${filename} -> ${bits} bit`,
+    sourceInfoEmpty: 'Foto (vuoto)',
+  },
+  en: {
+    title: '4. Photo (Photo Entropy)',
+    desc: 'Write down or paste the entropy data obtained from a physical photo (64-character SHA-256 hex hash or hex sequence).',
+    inputLabel: 'Write down or paste your photo’s SHA-256 hash or hex string:',
+    inputPlaceholder: 'E.g.: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855...',
+    dropzoneText: 'Or drag & drop an image file (PNG/JPEG) to compute its local hash',
+    btnClear: 'Clear',
+    btnUndo: 'Undo',
+    btnSample: 'Load Sample Hash',
+    samplePhotoInfo: 'Sample high-entropy photo hash',
+    statsChars: 'Hex characters',
+    statsBits: 'Entropy bits provided',
+    hashStatusValid: 'Valid SHA-256 hash (256 bits)',
+    hashStatusPartial: 'Partial string hashed via SHA-256',
+    lowEntropyWarningTitle: 'Warning: Low visual entropy detected!',
+    lowEntropyWarningDesc:
+      'The provided image shows near-zero color variation (flat solid color or pitch black). Ensure you use a photo rich in detail, varied textures, and sensor noise.',
+    biasAdviceTitle: 'Detecting bias in photos:',
+    biasAdviceText:
+      'Use a photo with sufficient visual detail, complex textures, or high-ISO sensor noise. Avoid completely black photos (lens covered), uniform solid backgrounds, or blank images, as they lack the physical entropy required for cryptographic security.',
+    sourceInfo: (chars: number, bits: number) =>
+      `Photo (${chars} hex chars -> ${bits} bits)`,
+    sourceInfoFile: (filename: string, bits: number) =>
+      `Photo File: ${filename} -> ${bits} bits`,
+    sourceInfoEmpty: 'Photo (empty)',
+  },
 };
 
-export default function EntropyPhoto({ targetBits, onBitsGenerated }: EntropyPhotoProps) {
-  const t = TEXT;
+export default function EntropyPhoto({
+  lang = 'en',
+  targetBits,
+  onBitsGenerated,
+}: EntropyPhotoProps) {
+  const t = CONTENT[lang];
   const [hexInput, setHexInput] = useState<string>('');
   const [photoInfo, setPhotoInfo] = useState<string | null>(null);
   const [isLowEntropyWarning, setIsLowEntropyWarning] = useState<boolean>(false);
@@ -63,7 +102,7 @@ export default function EntropyPhoto({ targetBits, onBitsGenerated }: EntropyPho
     const clean = val.replace(/[^0-9a-fA-F]/g, '');
     setHexInput(clean);
     const { bits } = computeBits(clean);
-    const info = `Photo (${clean.length} hex chars -> ${bits.length} bits)`;
+    const info = t.sourceInfo(clean.length, bits.length);
     onBitsGenerated(bits, info);
   };
 
@@ -89,7 +128,7 @@ export default function EntropyPhoto({ targetBits, onBitsGenerated }: EntropyPho
           setHexInput(result.hashHex);
           setIsLowEntropyWarning(result.isLowEntropy);
           setPhotoInfo(`${file.name} (${canvas.width}x${canvas.height}px)`);
-          onBitsGenerated(result.bits, `Photo File: ${file.name} -> ${result.bits.length} bits`);
+          onBitsGenerated(result.bits, t.sourceInfoFile(file.name, result.bits.length));
         }
       };
       img.src = e.target?.result as string;
@@ -101,7 +140,7 @@ export default function EntropyPhoto({ targetBits, onBitsGenerated }: EntropyPho
     setHexInput('');
     setPhotoInfo(null);
     setIsLowEntropyWarning(false);
-    onBitsGenerated('', 'Photo (empty)');
+    onBitsGenerated('', t.sourceInfoEmpty);
   };
 
   const handleUndo = () => {
@@ -113,7 +152,7 @@ export default function EntropyPhoto({ targetBits, onBitsGenerated }: EntropyPho
   const handleLoadSample = () => {
     const sample = 'c2e4785b8812c75a40b8a2135f6e80b2d6945a1e2f3c4d5e6f708192a3b4c5d6';
     setHexInput(sample);
-    setPhotoInfo('Sample high-entropy photo hash');
+    setPhotoInfo(t.samplePhotoInfo);
     setIsLowEntropyWarning(false);
     handleUpdate(sample);
   };
@@ -177,7 +216,7 @@ export default function EntropyPhoto({ targetBits, onBitsGenerated }: EntropyPho
               disabled={hexInput.length === 0}
               className="text-xs px-2.5 py-1 rounded-lg border border-bitpolito/20 dark:border-white/20 hover:bg-bitpolito/10 dark:hover:bg-white/10 disabled:opacity-40 cursor-pointer"
             >
-              Undo
+              {t.btnUndo}
             </button>
             <button
               type="button"
