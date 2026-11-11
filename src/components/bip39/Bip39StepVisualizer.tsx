@@ -4,42 +4,72 @@ import {
   computeBip39FromEntropyBits,
   binaryStringToHex,
   type WordCountTarget,
+  type Bip39WordInfo,
 } from '../../utils/entropyUtils';
 
-interface Bip39StepVisualizerProps {
+export interface Bip39StepVisualizerProps {
   lang?: Language;
   bits: string;
   targetWords: WordCountTarget;
 }
 
-const TEXT = {
-  title: 'Interactive BIP-39 Mnemonic Conversion',
-  subtitle: 'How raw entropy bits transform step-by-step into a secret seed phrase',
-  step1Title: '1. Raw Entropy (ENT)',
-  step1Desc: 'User-provided entropy bits (128 bits for 12 words, 256 bits for 24 words).',
-  step2Title: '2. Checksum Calculation (CS)',
-  step2Desc: 'The checksum is the first ENT/32 bits of the SHA-256 hash of the entropy bytes.',
-  step3Title: '3. Splitting into 11-Bit Chunks',
-  step3Desc:
-    'The 132 (or 264) combined bits are sliced into 11-bit chunks (2¹¹ = 2048 possibilities).',
-  step4Title: '4. BIP-39 Wordlist Lookup (Index 0 - 2047)',
-  step4Desc: 'Each 11-bit chunk directly indexes into the official 2048-word English dictionary.',
-  mnemonicCardTitle: 'Generated Mnemonic Phrase',
-  copyMnemonic: 'Copy Mnemonic',
-  copyBits: 'Copy Binary Bits',
-  copied: 'Copied to clipboard!',
-  bitsNeededWarning: 'More bits needed to complete the mnemonic phrase for',
-  words: 'words',
-  checksumBitsLabel: 'Checksum Bits',
-  entropyBitsLabel: 'Entropy Bits',
-  hexEntropy: 'Entropy in Hexadecimal (HEX):',
+const CONTENT = {
+  it: {
+    title: 'Conversione Mnemonica BIP-39 Interattiva',
+    subtitle: 'Come i bit grezzi di entropia si trasformano passo dopo passo in una frase seed segreta',
+    step1Title: '1. Entropia Grezza (ENT)',
+    step1Desc: 'Bit di entropia forniti dall’utente (128 bit per 12 parole, 256 bit per 24 parole).',
+    step2Title: '2. Calcolo del Checksum (CS)',
+    step2Desc: 'Il checksum corrisponde ai primi ENT/32 bit dell’hash SHA-256 dei byte di entropia.',
+    step3Title: '3. Suddivisione in blocchi da 11 bit',
+    step3Desc:
+      'I 132 (o 264) bit combinati vengono suddivisi in blocchi da 11 bit (2¹¹ = 2048 possibilità).',
+    step4Title: '4. Ricerca nel dizionario BIP-39 (Indice 0 - 2047)',
+    step4Desc: 'Ciascun blocco da 11 bit funge da indice diretto nel dizionario ufficiale inglese di 2048 parole.',
+    mnemonicCardTitle: 'Frase Mnemonica Generata',
+    copyMnemonic: 'Copia Mnemonica',
+    copyBits: 'Copia Bit Binari',
+    copied: 'Copiato negli appunti!',
+    bitsNeededWarning: 'Servono più bit per completare la frase mnemonica per',
+    words: 'parole',
+    checksumBitsLabel: 'Bit di Checksum',
+    entropyBitsLabel: 'Bit di Entropia',
+    hexEntropy: 'Entropia in Esadecimale (HEX):',
+    remaining: 'mancanti',
+    processing: 'in elaborazione...',
+  },
+  en: {
+    title: 'Interactive BIP-39 Mnemonic Conversion',
+    subtitle: 'How raw entropy bits transform step-by-step into a secret seed phrase',
+    step1Title: '1. Raw Entropy (ENT)',
+    step1Desc: 'User-provided entropy bits (128 bits for 12 words, 256 bits for 24 words).',
+    step2Title: '2. Checksum Calculation (CS)',
+    step2Desc: 'The checksum is the first ENT/32 bits of the SHA-256 hash of the entropy bytes.',
+    step3Title: '3. Splitting into 11-Bit Chunks',
+    step3Desc:
+      'The 132 (or 264) combined bits are sliced into 11-bit chunks (2¹¹ = 2048 possibilities).',
+    step4Title: '4. BIP-39 Wordlist Lookup (Index 0 - 2047)',
+    step4Desc: 'Each 11-bit chunk directly indexes into the official 2048-word English dictionary.',
+    mnemonicCardTitle: 'Generated Mnemonic Phrase',
+    copyMnemonic: 'Copy Mnemonic',
+    copyBits: 'Copy Binary Bits',
+    copied: 'Copied to clipboard!',
+    bitsNeededWarning: 'More bits needed to complete the mnemonic phrase for',
+    words: 'words',
+    checksumBitsLabel: 'Checksum Bits',
+    entropyBitsLabel: 'Entropy Bits',
+    hexEntropy: 'Entropy in Hexadecimal (HEX):',
+    remaining: 'remaining',
+    processing: 'processing',
+  },
 };
 
 export default function Bip39StepVisualizer({
+  lang = 'en',
   bits,
   targetWords,
 }: Bip39StepVisualizerProps) {
-  const t = TEXT;
+  const t = CONTENT[lang];
   const [copiedType, setCopiedType] = useState<string | null>(null);
 
   const reqBits = targetWords === 12 ? 128 : 256;
@@ -59,7 +89,7 @@ export default function Bip39StepVisualizer({
           {t.bitsNeededWarning} {targetWords} {t.words}:
         </span>
         <span className="font-mono text-sm font-bold text-bitpolito dark:text-white">
-          {bits.length} / {reqBits} bits ({remaining > 0 ? `${remaining} remaining` : 'processing'})
+          {bits.length} / {reqBits} bits ({remaining > 0 ? `${remaining} ${t.remaining}` : t.processing})
         </span>
       </div>
     );
@@ -151,7 +181,7 @@ export default function Bip39StepVisualizer({
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-          {bip39Data.words.map((item, index) => (
+          {bip39Data.words.map((item: Bip39WordInfo, index: number) => (
             <div
               key={index}
               className={`p-3 rounded-xl border-2 transition-all duration-150 flex flex-col justify-between ${
@@ -176,7 +206,7 @@ export default function Bip39StepVisualizer({
                 {item.checksumBits && (
                   <span
                     className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/20 px-0.5 rounded"
-                    title="Checksum bits"
+                    title={t.checksumBitsLabel}
                   >
                     {item.checksumBits}
                   </span>

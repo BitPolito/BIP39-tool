@@ -1,6 +1,24 @@
 import { useState, useEffect } from 'react';
-import EntropyVisualizer from './components/EntropyVisualizer';
-import Bip39 from './components/Bip39';
+import EntropyVisualizer from './components/entropy/EntropyVisualizer';
+import Bip39 from './components/bip39/Bip39';
+
+import cowIconWhite from './assets/bitpolito/cow-icon-white.svg';
+import cowIconBlue from './assets/bitpolito/cow-icon-blue.svg';
+import cowBullWhite from './assets/bitpolito/cow-bull-white.svg';
+import cowBullBlue from './assets/bitpolito/cow-bull-blue.svg';
+import iconSun from './assets/icons/icon-sun.svg';
+import iconMoon from './assets/icons/icon-moon.svg';
+import iconMicroscope from './assets/icons/icon-microscope.svg';
+import iconKey from './assets/icons/icon-key.svg';
+
+import iconTelegram from './assets/icons/icon-telegram.svg';
+import iconX from './assets/icons/icon-x.svg';
+import iconInstagram from './assets/icons/icon-instagram.svg';
+import iconGithub from './assets/icons/icon-github.svg';
+import iconLinkedin from './assets/icons/icon-linkedin.svg';
+import iconYoutube from './assets/icons/icon-youtube.svg';
+import iconSpotify from './assets/icons/icon-spotify.svg';
+import iconEmail from './assets/icons/icon-email.svg';
 
 export type Language = 'it' | 'en';
 export type Theme = 'light' | 'dark';
@@ -15,42 +33,42 @@ const SOCIAL_LINKS: SocialLink[] = [
   {
     name: 'Telegram',
     url: 'https://t.me/bitpolito',
-    icon: '/icons/icon-telegram.svg',
+    icon: iconTelegram,
   },
   {
     name: 'X',
     url: 'https://www.x.com/bitpolito',
-    icon: '/icons/icon-x.svg',
+    icon: iconX,
   },
   {
     name: 'Instagram',
     url: 'https://www.instagram.com/bitpolito/',
-    icon: '/icons/icon-instagram.svg',
+    icon: iconInstagram,
   },
   {
     name: 'GitHub',
     url: 'https://github.com/BitPolito',
-    icon: '/icons/icon-github.svg',
+    icon: iconGithub,
   },
   {
     name: 'LinkedIn',
     url: 'https://www.linkedin.com/company/bitpolito/?originalSubdomain=it',
-    icon: '/icons/icon-linkedin.svg',
+    icon: iconLinkedin,
   },
   {
     name: 'YouTube',
     url: 'https://www.youtube.com/@BitPolito',
-    icon: '/icons/icon-youtube.svg',
+    icon: iconYoutube,
   },
   {
     name: 'Spotify',
     url: 'https://open.spotify.com/show/3xXqSrkyLloGhTozWMnuhH',
-    icon: '/icons/icon-spotify.svg',
+    icon: iconSpotify,
   },
   {
     name: 'Email',
     url: 'mailto:info@bitpolito.it',
-    icon: '/icons/icon-email.svg',
+    icon: iconEmail,
   },
 ];
 
@@ -162,7 +180,7 @@ function App() {
             }}
           >
             <img
-              src={isDark ? '/bitpolito/cow-icon-white.svg' : '/bitpolito/cow-icon-blue.svg'}
+              src={isDark ? cowIconWhite : cowIconBlue}
               alt="BitPolito"
               className="w-9 h-9 object-contain transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-6"
             />
@@ -213,7 +231,7 @@ function App() {
               title={isDark ? t.lightModeAria : t.darkModeAria}
             >
               <img
-                src={isDark ? '/icons/icon-sun.svg' : '/icons/icon-moon.svg'}
+                src={isDark ? iconSun : iconMoon}
                 alt={isDark ? 'Sun icon' : 'Moon icon'}
                 className={`w-5 h-5 object-contain transition-all duration-250 group-hover:rotate-12 ${
                   isDark
@@ -250,7 +268,7 @@ function App() {
               >
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-bitpolito/10 group-hover:bg-white/20 dark:bg-white/15 dark:group-hover:bg-bitpolito/10 transition-colors duration-250">
                   <img
-                    src="/icons/icon-microscope.svg"
+                    src={iconMicroscope}
                     alt="Microscope icon"
                     className="w-6 h-6 object-contain transition-transform duration-250 group-hover:scale-110 group-hover:brightness-0 group-hover:invert dark:brightness-0 dark:invert dark:group-hover:filter-none"
                   />
@@ -276,7 +294,7 @@ function App() {
               >
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-bitpolito/10 group-hover:bg-white/20 dark:bg-white/15 dark:group-hover:bg-bitpolito/10 transition-colors duration-250">
                   <img
-                    src="/icons/icon-key.svg"
+                    src={iconKey}
                     alt="Key icon"
                     className="w-6 h-6 object-contain transition-transform duration-250 group-hover:scale-110 group-hover:brightness-0 group-hover:invert dark:brightness-0 dark:invert dark:group-hover:filter-none"
                   />
@@ -299,7 +317,7 @@ function App() {
           {/* Cows Symbol */}
           <div className="flex items-center justify-center select-none" aria-label={t.cowsAria}>
             <img
-              src={isDark ? '/bitpolito/cow-bull-white.svg' : '/bitpolito/cow-bull-blue.svg'}
+              src={isDark ? cowBullWhite : cowBullBlue}
               alt="BitPolito Cows"
               className="w-36 sm:w-40 h-auto object-contain transition-transform duration-250 hover:scale-105"
               style={{ imageRendering: 'pixelated' }}
