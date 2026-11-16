@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { generateBip44Wallet } from '../src/crypto/bip44.ts';
+import { generateBip44Wallet, generateHdWallet } from '../src/crypto/bip44.ts';
 
 test('generate 12-word wallet with correct BIP44 hierarchy', () => {
   const wallet = generateBip44Wallet(12);
@@ -54,4 +54,41 @@ test('generate 24-word wallet with correct BIP44 hierarchy', () => {
   const addrs = wallet.getAddresses(0, 10);
   assert.equal(addrs.length, 10);
   wallet.wipe();
+});
+
+test('generate HD wallet supporting BIP44 and BIP84 Native SegWit', () => {
+  const wallet = generateHdWallet(12);
+
+  const bip44Nodes = wallet.getIntermediateNodes('bip44');
+  assert.equal(bip44Nodes[1].path, "m/44'");
+  assert.equal(bip44Nodes[4].path, "m/44'/0'/0'/0");
+  const bip44Addrs = wallet.getAddresses('bip44', 0, 5);
+  assert.equal(bip44Addrs[0].path, "m/44'/0'/0'/0/0");
+  assert.ok(bip44Addrs[0].address.startsWith('1'), 'BIP44 P2PKH address should start with 1');
+
+  const bip84Nodes = wallet.getIntermediateNodes('bip84');
+  assert.equal(bip84Nodes.length, 5);
+  assert.equal(bip84Nodes[0].path, 'm');
+  assert.equal(bip84Nodes[1].path, "m/84'");
+  assert.equal(bip84Nodes[2].path, "m/84'/0'");
+  assert.equal(bip84Nodes[3].path, "m/84'/0'/0'");
+  assert.equal(bip84Nodes[4].path, "m/84'/0'/0'/0");
+
+  for (const node of bip44Nodes) {
+    assert.ok(node.xprv.startsWith('xprv'), `BIP44 node ${node.path} xprv should start with xprv`);
+    assert.ok(node.xpub.startsWith('xpub'), `BIP44 node ${node.path} xpub should start with xpub`);
+  }
+  for (const node of bip84Nodes) {
+    assert.ok(node.xprv.startsWith('zprv'), `BIP84 node ${node.path} xprv should start with zprv`);
+    assert.ok(node.xpub.startsWith('zpub'), `BIP84 node ${node.path} xpub should start with zpub`);
+  }
+
+  const bip84Addrs = wallet.getAddresses('bip84', 0, 10);
+  assert.equal(bip84Addrs.length, 10);
+  assert.equal(bip84Addrs[0].path, "m/84'/0'/0'/0/0");
+  assert.ok(bip84Addrs[0].address.startsWith('bc1q'), 'BIP84 Native SegWit address should start with bc1q');
+  assert.notEqual(bip44Addrs[0].address, bip84Addrs[0].address);
+
+  wallet.wipe();
+  assert.equal(wallet.rootNode.privateKey, null);
 });

@@ -19,7 +19,8 @@
     "@scure/bip39": "^2.4.0",
     "@scure/btc-signer": "^2.4.1",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-qr-code": "^2.2.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
