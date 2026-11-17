@@ -3,75 +3,51 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
 import { HDKey } from '@scure/bip32';
 import * as btc from '@scure/btc-signer';
 import { hex } from '@scure/base';
-
-export type BipStandard = 'bip44' | 'bip84';
-
-export interface Bip44LevelInfo {
-  depth: number;
-  nameKey: 'root' | 'purpose' | 'coinType' | 'account' | 'change' | 'address';
-  path: string;
-  isHardened: boolean;
-  descIt: string;
-  descEn: string;
-}
-
-export interface IntermediateNodeData {
-  depth: number;
-  nameKey: 'root' | 'purpose' | 'coinType' | 'account' | 'change';
-  path: string;
-  isHardened: boolean;
-  descIt: string;
-  descEn: string;
-  privateKeyHex: string;
-  wif: string;
-  chainCodeHex: string;
-  xprv: string;
-  xpub: string;
-  publicKeyHex: string;
-}
-
-export interface AddressLeafData {
-  index: number;
-  path: string;
-  address: string;
-}
-
-export interface HdWallet {
-  wordCount: 12 | 24;
-  mnemonic: string;
-  seedHex: string;
-  rootNode: HDKey;
-  getIntermediateNodes: (standard: BipStandard) => IntermediateNodeData[];
-  getAddresses: (standard: BipStandard, offset: number, count: number) => AddressLeafData[];
-  wipe: () => void;
-}
-
-export interface Bip44Wallet {
-  wordCount: 12 | 24;
-  mnemonic: string;
-  seedHex: string;
-  rootNode: HDKey;
-  changeNode: HDKey;
-  intermediateNodes: IntermediateNodeData[];
-  getAddresses: (offset: number, count: number) => AddressLeafData[];
-  wipe: () => void;
-}
-
-type LevelDefinition = Omit<
+import type {
+  BipStandard,
   IntermediateNodeData,
-  'privateKeyHex' | 'wif' | 'chainCodeHex' | 'xprv' | 'xpub' | 'publicKeyHex'
->;
+  AddressLeafData,
+  HdWallet,
+  Bip44Wallet,
+  LevelDefinition,
+  StandardConfig,
+} from './interface';
+
+const STANDARD_CONFIG: Record<BipStandard, StandardConfig> = {
+  bip44: {
+    purposeSegment: "44'",
+    changePath: "m/44'/0'/0'/0",
+    versions: { private: 0x0488ade4, public: 0x0488b21e },
+    purposeDescIt:
+      "Livello Purpose: 44' specifica che la derivazione segue la struttura dello standard BIP-0044 (Legacy P2PKH).",
+    purposeDescEn:
+      "Purpose level: 44' specifies that derivation follows the BIP-0044 standard structure (Legacy P2PKH).",
+    deriveAddress: (pubKey) => btc.p2pkh(pubKey, btc.NETWORK).address ?? '',
+  },
+  bip84: {
+    purposeSegment: "84'",
+    changePath: "m/84'/0'/0'/0",
+    versions: { private: 0x04b2430c, public: 0x04b24746 },
+    purposeDescIt:
+      "Livello Purpose: 84' specifica che la derivazione segue lo standard BIP-0084 per indirizzi Native SegWit (P2WPKH / Bech32).",
+    purposeDescEn:
+      "Purpose level: 84' specifies that derivation follows the BIP-0084 standard for Native SegWit (P2WPKH / Bech32) addresses.",
+    deriveAddress: (pubKey) => btc.p2wpkh(pubKey, btc.NETWORK).address ?? '',
+  },
+  bip86: {
+    purposeSegment: "86'",
+    changePath: "m/86'/0'/0'/0",
+    versions: { private: 0x0488ade4, public: 0x0488b21e },
+    purposeDescIt:
+      "Livello Purpose: 86' specifica che la derivazione segue lo standard BIP-0086 per indirizzi Taproot (P2TR / Bech32m).",
+    purposeDescEn:
+      "Purpose level: 86' specifies that derivation follows the BIP-0086 standard for Taproot (P2TR / Bech32m) addresses.",
+    deriveAddress: (pubKey) => btc.p2tr(pubKey.subarray(1, 33), undefined, btc.NETWORK).address ?? '',
+  },
+};
 
 function getLevelDefinitions(standard: BipStandard): LevelDefinition[] {
-  const purposeSegment = standard === 'bip84' ? "84'" : "44'";
-  const purposeDescIt =
-    standard === 'bip84'
-      ? "Livello Purpose: 84' specifica che la derivazione segue lo standard BIP-0084 per indirizzi Native SegWit (P2WPKH / Bech32)."
-      : "Livello Purpose: 44' specifica che la derivazione segue la struttura dello standard BIP-0044 (Legacy P2PKH).";
-  const purposeDescEn =
-    standard === 'bip84'
-      ? "Purpose level: 84' specifies that derivation follows the BIP-0084 standard for Native SegWit (P2WPKH / Bech32) addresses."
-      : "Purpose level: 44' specifies that derivation follows the BIP-0044 standard structure (Legacy P2PKH).";
+  const { purposeSegment, purposeDescIt, purposeDescEn } = STANDARD_CONFIG[standard];
 
   return [
     {
@@ -118,23 +94,11 @@ function getLevelDefinitions(standard: BipStandard): LevelDefinition[] {
 }
 
 function getChangePath(standard: BipStandard): string {
-  return standard === 'bip84' ? "m/84'/0'/0'/0" : "m/44'/0'/0'/0";
-}
-
-// SLIP-0132 version bytes for mainnet extended keys (xprv/xpub for BIP44, zprv/zpub for BIP84)
-const STANDARD_VERSIONS: Record<BipStandard, { private: number; public: number }> = {
-  bip44: { private: 0x0488ade4, public: 0x0488b21e },
-  bip84: { private: 0x04b2430c, public: 0x04b24746 },
-};
-
-function deriveAddressFromPublicKey(standard: BipStandard, pubKey: Uint8Array): string {
-  return standard === 'bip84'
-    ? (btc.p2wpkh(pubKey, btc.NETWORK).address ?? '')
-    : (btc.p2pkh(pubKey, btc.NETWORK).address ?? '');
+  return STANDARD_CONFIG[standard].changePath;
 }
 
 /**
- * Creates a lazy HD wallet supporting both BIP44 (Legacy) and BIP84 (Native SegWit).
+ * Creates a lazy HD wallet supporting BIP44 (Legacy), BIP84 (Native SegWit), and BIP86 (Taproot).
  * Each standard's branch is only derived on demand and tracked for memory wiping.
  */
 export function generateHdWallet(wordCount: 12 | 24 = 12): HdWallet {
@@ -143,7 +107,7 @@ export function generateHdWallet(wordCount: 12 | 24 = 12): HdWallet {
   const seedBytes = mnemonicToSeedSync(mnemonic, '');
   const seedHex = hex.encode(seedBytes);
 
-  const rootNode = HDKey.fromMasterSeed(seedBytes, STANDARD_VERSIONS.bip44);
+  const rootNode = HDKey.fromMasterSeed(seedBytes, STANDARD_CONFIG.bip44.versions);
   const nodesToWipe: HDKey[] = [rootNode];
   const rootNodes: Partial<Record<BipStandard, HDKey>> = { bip44: rootNode };
   const changeNodes: Partial<Record<BipStandard, HDKey>> = {};
@@ -151,7 +115,7 @@ export function generateHdWallet(wordCount: 12 | 24 = 12): HdWallet {
   const getOrCreateRootNode = (standard: BipStandard): HDKey => {
     const existing = rootNodes[standard];
     if (existing) return existing;
-    const created = HDKey.fromMasterSeed(seedBytes, STANDARD_VERSIONS[standard]);
+    const created = HDKey.fromMasterSeed(seedBytes, STANDARD_CONFIG[standard].versions);
     rootNodes[standard] = created;
     nodesToWipe.push(created);
     return created;
@@ -203,7 +167,7 @@ export function generateHdWallet(wordCount: 12 | 24 = 12): HdWallet {
       const index = safeOffset + i;
       const child = changeNode.deriveChild(index);
       const pubKey = child.publicKey;
-      const address = pubKey ? deriveAddressFromPublicKey(standard, pubKey) : '';
+      const address = pubKey ? STANDARD_CONFIG[standard].deriveAddress(pubKey) : '';
       // Wipe the child private key immediately after deriving the address to keep memory minimal
       try {
         child.wipePrivateData();

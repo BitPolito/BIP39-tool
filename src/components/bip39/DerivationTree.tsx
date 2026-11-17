@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import QRCode from 'react-qr-code';
 import type { Language } from '../../App';
-import type { BipStandard, IntermediateNodeData, AddressLeafData } from '../../crypto/bip44';
+import type { BipStandard, IntermediateNodeData, AddressLeafData } from '../../crypto/interface';
 
 interface DerivationTreeProps {
   lang: Language;
@@ -38,8 +38,8 @@ const TREE_STRINGS = {
     hideQr: 'Nascondi QR',
     qrTitle: 'QR Code Indirizzo',
     doubleClickToCopy: 'Doppio click per copiare l’indirizzo',
-    terminalLeavesTitle: (std: string, isSegwit: boolean) =>
-      `Foglie Terminali: Indirizzi Bitcoin (${std}${isSegwit ? ' Native SegWit' : ' Legacy'})`,
+    terminalLeavesTitle: (std: string, typeLabel: string) =>
+      `Foglie Terminali: Indirizzi Bitcoin (${std} ${typeLabel})`,
     terminalLeavesDesc: (std: string) =>
       `Le ultime foglie dell'albero contengono solo gli indirizzi Bitcoin finali derivati e l'intestazione con il percorso ${std}.`,
     showingRange: 'Mostrando indirizzi:',
@@ -51,6 +51,7 @@ const TREE_STRINGS = {
       root: 'Radice Master (m)',
       purpose44: "Purpose (44')",
       purpose84: "Purpose (84')",
+      purpose86: "Purpose (86')",
       coinType: "Coin Type (0' Bitcoin)",
       account: "Account (0' Primario)",
       change: 'Change (0 Ricezione Esterna)',
@@ -77,8 +78,8 @@ const TREE_STRINGS = {
     hideQr: 'Hide QR',
     qrTitle: 'Address QR Code',
     doubleClickToCopy: 'Double-click to copy address',
-    terminalLeavesTitle: (std: string, isSegwit: boolean) =>
-      `Terminal Leaves: Bitcoin Addresses (${std}${isSegwit ? ' Native SegWit' : ' Legacy'})`,
+    terminalLeavesTitle: (std: string, typeLabel: string) =>
+      `Terminal Leaves: Bitcoin Addresses (${std} ${typeLabel})`,
     terminalLeavesDesc: (std: string) =>
       `The final leaves of the tree contain only the derived Bitcoin addresses and the ${std} path heading.`,
     showingRange: 'Showing addresses:',
@@ -90,11 +91,21 @@ const TREE_STRINGS = {
       root: 'Master Root (m)',
       purpose44: "Purpose (44')",
       purpose84: "Purpose (84')",
+      purpose86: "Purpose (86')",
       coinType: "Coin Type (0' Bitcoin)",
       account: "Account (0' Primary)",
       change: 'Change (0 External / Receive)',
     },
   },
+};
+
+const STANDARD_UI_META: Record<
+  BipStandard,
+  { label: string; addressType: string; purposeKey: 'purpose44' | 'purpose84' | 'purpose86'; isZpub: boolean }
+> = {
+  bip44: { label: 'BIP44', addressType: 'Legacy', purposeKey: 'purpose44', isZpub: false },
+  bip84: { label: 'BIP84', addressType: 'Native SegWit', purposeKey: 'purpose84', isZpub: true },
+  bip86: { label: 'BIP86', addressType: 'Taproot', purposeKey: 'purpose86', isZpub: false },
 };
 
 function CopyIcon() {
@@ -149,8 +160,7 @@ export default function DerivationTree({
   hidePrivateInfo = false,
 }: DerivationTreeProps) {
   const t = TREE_STRINGS[lang];
-  const isSegwit = standard === 'bip84';
-  const stdLabel = isSegwit ? 'BIP84' : 'BIP44';
+  const { label: stdLabel, addressType, purposeKey, isZpub } = STANDARD_UI_META[standard];
   const [expandedNodes, setExpandedNodes] = useState<Record<number, boolean>>({
     0: false,
     1: false,
@@ -217,17 +227,14 @@ export default function DerivationTree({
 
       {/* Hierarchical Tree Container with Branching Guide */}
       <div className="relative pl-3 sm:pl-6 space-y-6">
-        {/* Continuous vertical trunk line connecting intermediate levels */}
-        <div className="absolute left-[19px] sm:left-[31px] top-4 bottom-24 w-0.5 bg-gradient-to-b from-bitpolito/40 via-bitpolito/30 to-bitpolito/20 dark:from-white/40 dark:via-white/30 dark:to-white/20" />
+        <div className="absolute left-[19px] sm:left-[31px] top-4 bottom-0 w-0.5 bg-gradient-to-b from-bitpolito/40 via-bitpolito/30 to-bitpolito/20 dark:from-white/40 dark:via-white/30 dark:to-white/20" />
 
         {/* Intermediate Levels (Depth 0 to 4) */}
         {intermediateNodes.map((node) => {
           const isExpanded = !hidePrivateInfo && !!expandedNodes[node.depth];
           const levelName =
             node.nameKey === 'purpose'
-              ? isSegwit
-                ? t.levelNames.purpose84
-                : t.levelNames.purpose44
+              ? t.levelNames[purposeKey]
               : t.levelNames[node.nameKey];
           const desc = lang === 'it' ? node.descIt : node.descEn;
 
@@ -395,7 +402,7 @@ export default function DerivationTree({
                         <div className="bg-white dark:bg-black/20 p-2.5 rounded-xl border border-bitpolito/20 dark:border-white/20">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-bitpolito/70 dark:text-white/70">
-                              {t.xprv(isSegwit)}
+                              {t.xprv(isZpub)}
                             </span>
                             <button
                               type="button"
@@ -425,7 +432,7 @@ export default function DerivationTree({
                         <div className="bg-white dark:bg-black/20 p-2.5 rounded-xl border border-bitpolito/20 dark:border-white/20">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-bitpolito/70 dark:text-white/70">
-                              {t.xpub(isSegwit)}
+                              {t.xpub(isZpub)}
                             </span>
                             <button
                               type="button"
@@ -473,7 +480,7 @@ export default function DerivationTree({
                     {t.depthBadge} 5
                   </span>
                   <h4 className="text-lg sm:text-xl font-black text-bitpolito dark:text-white">
-                    {t.terminalLeavesTitle(stdLabel, isSegwit)}
+                    {t.terminalLeavesTitle(stdLabel, addressType)}
                   </h4>
                 </div>
                 <p className="mt-1 text-xs text-bitpolito/70 dark:text-white/70">

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { generateBip44Wallet, generateHdWallet } from '../src/crypto/bip44.ts';
+import { generateBip44Wallet, generateHdWallet } from '../src/crypto/derivationLogic.ts';
 
 test('generate 12-word wallet with correct BIP44 hierarchy', () => {
   const wallet = generateBip44Wallet(12);
@@ -56,7 +56,7 @@ test('generate 24-word wallet with correct BIP44 hierarchy', () => {
   wallet.wipe();
 });
 
-test('generate HD wallet supporting BIP44 and BIP84 Native SegWit', () => {
+test('generate HD wallet supporting BIP44, BIP84 Native SegWit, and BIP86 Taproot', () => {
   const wallet = generateHdWallet(12);
 
   const bip44Nodes = wallet.getIntermediateNodes('bip44');
@@ -74,6 +74,14 @@ test('generate HD wallet supporting BIP44 and BIP84 Native SegWit', () => {
   assert.equal(bip84Nodes[3].path, "m/84'/0'/0'");
   assert.equal(bip84Nodes[4].path, "m/84'/0'/0'/0");
 
+  const bip86Nodes = wallet.getIntermediateNodes('bip86');
+  assert.equal(bip86Nodes.length, 5);
+  assert.equal(bip86Nodes[0].path, 'm');
+  assert.equal(bip86Nodes[1].path, "m/86'");
+  assert.equal(bip86Nodes[2].path, "m/86'/0'");
+  assert.equal(bip86Nodes[3].path, "m/86'/0'/0'");
+  assert.equal(bip86Nodes[4].path, "m/86'/0'/0'/0");
+
   for (const node of bip44Nodes) {
     assert.ok(node.xprv.startsWith('xprv'), `BIP44 node ${node.path} xprv should start with xprv`);
     assert.ok(node.xpub.startsWith('xpub'), `BIP44 node ${node.path} xpub should start with xpub`);
@@ -82,12 +90,23 @@ test('generate HD wallet supporting BIP44 and BIP84 Native SegWit', () => {
     assert.ok(node.xprv.startsWith('zprv'), `BIP84 node ${node.path} xprv should start with zprv`);
     assert.ok(node.xpub.startsWith('zpub'), `BIP84 node ${node.path} xpub should start with zpub`);
   }
+  for (const node of bip86Nodes) {
+    assert.ok(node.xprv.startsWith('xprv'), `BIP86 node ${node.path} xprv should start with xprv`);
+    assert.ok(node.xpub.startsWith('xpub'), `BIP86 node ${node.path} xpub should start with xpub`);
+  }
 
   const bip84Addrs = wallet.getAddresses('bip84', 0, 10);
   assert.equal(bip84Addrs.length, 10);
   assert.equal(bip84Addrs[0].path, "m/84'/0'/0'/0/0");
   assert.ok(bip84Addrs[0].address.startsWith('bc1q'), 'BIP84 Native SegWit address should start with bc1q');
   assert.notEqual(bip44Addrs[0].address, bip84Addrs[0].address);
+
+  const bip86Addrs = wallet.getAddresses('bip86', 0, 10);
+  assert.equal(bip86Addrs.length, 10);
+  assert.equal(bip86Addrs[0].path, "m/86'/0'/0'/0/0");
+  assert.ok(bip86Addrs[0].address.startsWith('bc1p'), 'BIP86 Taproot address should start with bc1p');
+  assert.notEqual(bip44Addrs[0].address, bip86Addrs[0].address);
+  assert.notEqual(bip84Addrs[0].address, bip86Addrs[0].address);
 
   wallet.wipe();
   assert.equal(wallet.rootNode.privateKey, null);
