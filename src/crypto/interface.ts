@@ -2,6 +2,18 @@ import type { HDKey } from '@scure/bip32';
 
 export type BipStandard = 'bip44' | 'bip84' | 'bip86';
 
+export type MnemonicLanguage =
+  | 'english'
+  | 'japanese'
+  | 'spanish'
+  | 'simplified-chinese'
+  | 'traditional-chinese'
+  | 'french'
+  | 'italian'
+  | 'korean'
+  | 'czech'
+  | 'portuguese';
+
 export interface Bip44LevelInfo {
   depth: number;
   nameKey: 'root' | 'purpose' | 'coinType' | 'account' | 'change' | 'address';

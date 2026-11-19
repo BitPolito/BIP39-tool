@@ -1,10 +1,25 @@
-import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39';
-import { wordlist } from '@scure/bip39/wordlists/english.js';
+import {
+  entropyToMnemonic,
+  generateMnemonic,
+  mnemonicToEntropy,
+  mnemonicToSeedSync,
+} from '@scure/bip39';
+import { wordlist as englishWordlist } from '@scure/bip39/wordlists/english.js';
+import { wordlist as japaneseWordlist } from '@scure/bip39/wordlists/japanese.js';
+import { wordlist as spanishWordlist } from '@scure/bip39/wordlists/spanish.js';
+import { wordlist as simplifiedChineseWordlist } from '@scure/bip39/wordlists/simplified-chinese.js';
+import { wordlist as traditionalChineseWordlist } from '@scure/bip39/wordlists/traditional-chinese.js';
+import { wordlist as frenchWordlist } from '@scure/bip39/wordlists/french.js';
+import { wordlist as italianWordlist } from '@scure/bip39/wordlists/italian.js';
+import { wordlist as koreanWordlist } from '@scure/bip39/wordlists/korean.js';
+import { wordlist as czechWordlist } from '@scure/bip39/wordlists/czech.js';
+import { wordlist as portugueseWordlist } from '@scure/bip39/wordlists/portuguese.js';
 import { HDKey } from '@scure/bip32';
 import * as btc from '@scure/btc-signer';
 import { hex } from '@scure/base';
 import type {
   BipStandard,
+  MnemonicLanguage,
   IntermediateNodeData,
   AddressLeafData,
   HdWallet,
@@ -12,6 +27,19 @@ import type {
   LevelDefinition,
   StandardConfig,
 } from './interface';
+
+export const WORDLISTS: Record<MnemonicLanguage, string[]> = {
+  english: englishWordlist,
+  japanese: japaneseWordlist,
+  spanish: spanishWordlist,
+  'simplified-chinese': simplifiedChineseWordlist,
+  'traditional-chinese': traditionalChineseWordlist,
+  french: frenchWordlist,
+  italian: italianWordlist,
+  korean: koreanWordlist,
+  czech: czechWordlist,
+  portuguese: portugueseWordlist,
+};
 
 const STANDARD_CONFIG: Record<BipStandard, StandardConfig> = {
   bip44: {
@@ -98,12 +126,10 @@ function getChangePath(standard: BipStandard): string {
 }
 
 /**
- * Creates a lazy HD wallet supporting BIP44 (Legacy), BIP84 (Native SegWit), and BIP86 (Taproot).
+ * Builds a lazy HD wallet from a BIP39 mnemonic string.
  * Each standard's branch is only derived on demand and tracked for memory wiping.
  */
-export function generateHdWallet(wordCount: 12 | 24 = 12): HdWallet {
-  const strength = wordCount === 24 ? 256 : 128;
-  const mnemonic = generateMnemonic(wordlist, strength);
+function createHdWalletFromMnemonic(mnemonic: string, wordCount: 12 | 24): HdWallet {
   const seedBytes = mnemonicToSeedSync(mnemonic, '');
   const seedHex = hex.encode(seedBytes);
 
@@ -209,6 +235,38 @@ export function generateHdWallet(wordCount: 12 | 24 = 12): HdWallet {
     getAddresses,
     wipe,
   };
+}
+
+/**
+ * Creates a lazy HD wallet supporting BIP44 (Legacy), BIP84 (Native SegWit), and BIP86 (Taproot).
+ * Each standard's branch is only derived on demand and tracked for memory wiping.
+ */
+export function generateHdWallet(
+  wordCount: 12 | 24 = 12,
+  language: MnemonicLanguage = 'english',
+): HdWallet {
+  const strength = wordCount === 24 ? 256 : 128;
+  const mnemonic = generateMnemonic(WORDLISTS[language], strength);
+  return createHdWalletFromMnemonic(mnemonic, wordCount);
+}
+
+/**
+ * Translates an existing mnemonic to another BIP39 wordlist using the same entropy
+ * and builds a fresh lazy HD wallet with the corresponding BIP39 seed and BIP32 tree.
+ */
+export function translateHdWallet(
+  sourceMnemonic: string,
+  sourceLanguage: MnemonicLanguage,
+  targetLanguage: MnemonicLanguage,
+  wordCount: 12 | 24,
+): HdWallet {
+  const entropy = mnemonicToEntropy(sourceMnemonic, WORDLISTS[sourceLanguage]);
+  try {
+    const targetMnemonic = entropyToMnemonic(entropy, WORDLISTS[targetLanguage]);
+    return createHdWalletFromMnemonic(targetMnemonic, wordCount);
+  } finally {
+    entropy.fill(0);
+  }
 }
 
 /**

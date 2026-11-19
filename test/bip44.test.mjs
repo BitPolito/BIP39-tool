@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { generateBip44Wallet, generateHdWallet } from '../src/crypto/derivationLogic.ts';
+import {
+  generateBip44Wallet,
+  generateHdWallet,
+  translateHdWallet,
+  WORDLISTS,
+} from '../src/crypto/derivationLogic.ts';
 
 test('generate 12-word wallet with correct BIP44 hierarchy', () => {
   const wallet = generateBip44Wallet(12);
@@ -110,4 +115,48 @@ test('generate HD wallet supporting BIP44, BIP84 Native SegWit, and BIP86 Taproo
 
   wallet.wipe();
   assert.equal(wallet.rootNode.privateKey, null);
+});
+
+test('translate HD wallet across all 10 BIP39 wordlists preserving word indices and deriving distinct seeds', () => {
+  const baseWallet = generateHdWallet(12, 'english');
+  const englishWords = baseWallet.mnemonic.trim().split(/\s+/);
+  const englishIndices = englishWords.map((w) => WORDLISTS.english.indexOf(w));
+
+  const languages = [
+    'japanese',
+    'spanish',
+    'simplified-chinese',
+    'traditional-chinese',
+    'french',
+    'italian',
+    'korean',
+    'czech',
+    'portuguese',
+  ];
+
+  for (const lang of languages) {
+    const translated = translateHdWallet(baseWallet.mnemonic, 'english', lang, 12);
+    const words = translated.mnemonic.trim().split(/\s+/);
+    assert.equal(words.length, 12, `${lang} mnemonic should have 12 words`);
+    assert.deepEqual(
+      words.map((w) => WORDLISTS[lang].indexOf(w)),
+      englishIndices,
+      `${lang} word indices should match English word indices`,
+    );
+    assert.equal(translated.seedHex.length, 128);
+    assert.notEqual(translated.seedHex, baseWallet.seedHex);
+
+    const addrs = translated.getAddresses('bip84', 0, 1);
+    assert.ok(addrs[0].address.startsWith('bc1q'));
+
+    // Roundtrip back to English should recover the exact same mnemonic and seed
+    const roundtrip = translateHdWallet(translated.mnemonic, lang, 'english', 12);
+    assert.equal(roundtrip.mnemonic, baseWallet.mnemonic);
+    assert.equal(roundtrip.seedHex, baseWallet.seedHex);
+
+    translated.wipe();
+    roundtrip.wipe();
+  }
+
+  baseWallet.wipe();
 });
