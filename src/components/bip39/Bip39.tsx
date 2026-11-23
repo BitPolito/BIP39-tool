@@ -1,160 +1,36 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import type { Language } from '../../App';
 import iconKey from '../../assets/icons/icon-key.svg';
 import cowIconBlue from '../../assets/bitpolito/cow-icon-blue.svg';
 import cowIconWhite from '../../assets/bitpolito/cow-icon-white.svg';
-import { generateHdWallet, translateHdWallet } from '../../crypto/derivationLogic';
+import {
+  generateHdWallet,
+  translateHdWallet,
+  deriveHdWalletFromMnemonic,
+  validateUserMnemonic,
+} from './utils/derivationLogic';
 import type {
-  HdWallet,
   BipStandard,
+  CoinId,
+  ChangeIndex,
+  DerivationParams,
   MnemonicLanguage,
   IntermediateNodeData,
-  AddressLeafData,
-} from '../../crypto/interface';
+} from './utils/interface';
+import type {
+  Bip39Props,
+  LanguageWalletCache,
+  LanguageWalletEntry,
+} from './utils/interfaceUI';
+import {
+  BIP_SPECS,
+  CONTENT,
+  MNEMONIC_LANGUAGE_OPTIONS,
+  STANDARD_OPTIONS,
+  getBranchKey,
+} from './utils/utilsBip39';
 import DerivationTree from './DerivationTree';
-
-type StandardCache = Partial<
-  Record<
-    BipStandard,
-    {
-      intermediateNodes: IntermediateNodeData[];
-      addressesByOffset: Record<number, AddressLeafData[]>;
-    }
-  >
->;
-
-type LanguageWalletEntry = {
-  wallet: HdWallet;
-  standardCache: StandardCache;
-};
-
-type LanguageWalletCache = Partial<Record<MnemonicLanguage, LanguageWalletEntry>>;
-
-interface Bip39Props {
-  lang: Language;
-  onBack: () => void;
-}
-
-const MNEMONIC_LANGUAGE_OPTIONS: { id: MnemonicLanguage; label: string }[] = [
-  { id: 'english', label: 'English' },
-  { id: 'japanese', label: '日本語 (Japanese)' },
-  { id: 'spanish', label: 'Español' },
-  { id: 'simplified-chinese', label: '中文(简体) (Simplified Chinese)' },
-  { id: 'traditional-chinese', label: '中文(繁體) (Traditional Chinese)' },
-  { id: 'french', label: 'Français' },
-  { id: 'italian', label: 'Italiano' },
-  { id: 'korean', label: '한국어 (Korean)' },
-  { id: 'czech', label: 'Čeština' },
-  { id: 'portuguese', label: 'Português' },
-];
-
-const STANDARD_OPTIONS: { id: BipStandard; label: string }[] = [
-  { id: 'bip44', label: 'BIP44' },
-  { id: 'bip84', label: 'BIP84 (SegWit)' },
-  { id: 'bip86', label: 'BIP86 (Taproot)' },
-];
-
-const CONTENT = {
-  it: {
-    back: 'Torna alla home',
-    close: 'Chiudi',
-    title: 'Strumento Ian Coleman',
-    subtitle: 'BIP39 Seed e Derivazione Albero BIP44 / BIP84 / BIP86',
-    desc: 'Strumento didattico e standalone per la generazione di frasi seed BIP39, il calcolo della root BIP32 e la visualizzazione ad albero gerarchico deterministico (BIP44 Legacy / BIP84 SegWit / BIP86 Taproot).',
-    statusBadge: 'BIP39 • BIP32 • BIP44 / BIP84 / BIP86',
-    standardToggleAria: 'Seleziona standard di derivazione indirizzi (BIP44, BIP84 o BIP86)',
-    warningTitle: 'Avvertimento di sicurezza: non usare con fondi reali',
-    warningMessage:
-      'Non utilizzare gli indirizzi o le chiavi generati da questo strumento: la diffusione o condivisione dei dati presenti in questa pagina (chiavi private, seed phrase) comporterà la perdita irrecuperabile dei propri coins. Questo strumento è pensato unicamente a scopo didattico e dimostrativo.',
-    wordCountLabel: 'Lunghezza frase mnemonica (12 o 24 parole):',
-    mnemonicLangLabel: 'Lingua mnemonica:',
-    words12: '12 parole (128 bit)',
-    words24: '24 parole (256 bit)',
-    generateBtn: 'Genera',
-    generating: 'Calcolo in corso...',
-    wipeBtn: 'Pulisci Cache (Wipe)',
-    wipedNotice: 'Cache e dati privati azzerati con successo.',
-    hidePrivateInfo: 'Nascondi tutte le informazioni private',
-    hidePrivateInfoDesc: 'Nasconde mnemonica, seed e impedisce di espandere i passi da depth 0 a 4.',
-    privateInfoHiddenTitle: 'Informazioni private nascoste',
-    privateInfoHiddenDesc:
-      'Frase mnemonica, seed BIP39 e chiavi nei passi depth 0–4 sono nascosti. Sono visibili solo gli indirizzi finali.',
-    mnemonicTitle: 'Frase Mnemonica BIP39 Generata',
-    mnemonicDesc: (langLabel: string) =>
-      `12 o 24 parole conformi al dizionario standard BIP39 (${langLabel}).`,
-    copyMnemonic: 'Copia Mnemonica',
-    seedTitle: 'BIP39 Seed (512-bit Hex)',
-    seedDesc: 'Derivato dalla mnemonica tramite HMAC-SHA512 con 2048 iterazioni di PBKDF2.',
-    copySeed: 'Copia Seed',
-    rootXprvTitle: 'BIP32 Root Extended Private Key (xprv)',
-    rootXpubTitle: 'BIP32 Root Extended Public Key (xpub)',
-    copyXprv: 'Copia xprv',
-    copyXpub: 'Copia xpub',
-    copy: 'Copia',
-    copied: 'Copiato!',
-    emptyTitle: 'Genera un nuovo portafoglio deterministico',
-    emptyDesc:
-      'Imposta la lunghezza desiderata (12 o 24 parole) e premi "Genera" per calcolare il seed BIP39, la root BIP32 e visualizzare il grafico ad albero gerarchico BIP44 / BIP84 / BIP86.',
-  },
-  en: {
-    back: 'Back to home',
-    close: 'Close',
-    title: 'Ian Coleman Tool',
-    subtitle: 'BIP39 Seed and BIP44 / BIP84 / BIP86 Tree Derivation',
-    desc: 'Educational and standalone tool for BIP39 mnemonic generation, BIP32 root key calculation, and hierarchical deterministic tree visualization per BIP44 (Legacy), BIP84 (Native SegWit), and BIP86 (Taproot).',
-    statusBadge: 'BIP39 • BIP32 • BIP44 / BIP84 / BIP86',
-    standardToggleAria: 'Select address derivation standard (BIP44, BIP84, or BIP86)',
-    warningTitle: 'Security Warning: do not use with real funds',
-    warningMessage:
-      'Do not use the addresses or keys generated by this tool: any exposure or disclosure of the data on this page (private keys, seed phrase) will result in the permanent loss of your coins. This tool is intended solely for educational and testing purposes.',
-    wordCountLabel: 'Mnemonic length (12 or 24 words):',
-    mnemonicLangLabel: 'Mnemonic language:',
-    words12: '12 words (128 bits)',
-    words24: '24 words (256 bits)',
-    generateBtn: 'Generate',
-    generating: 'Calculating...',
-    wipeBtn: 'Wipe Cache',
-    wipedNotice: 'Cache and private data wiped successfully.',
-    hidePrivateInfo: 'Hide all private info',
-    hidePrivateInfoDesc: 'Hides mnemonic, seed, and prevents expanding steps from depth 0 to 4.',
-    privateInfoHiddenTitle: 'Private information hidden',
-    privateInfoHiddenDesc:
-      'Mnemonic phrase, BIP39 seed, and keys in depth 0–4 steps are hidden. Only the final addresses are shown.',
-    mnemonicTitle: 'Generated BIP39 Mnemonic Phrase',
-    mnemonicDesc: (langLabel: string) =>
-      `12 or 24 words conforming to the standard BIP39 dictionary (${langLabel}).`,
-    copyMnemonic: 'Copy Mnemonic',
-    seedTitle: 'BIP39 Seed (512-bit Hex)',
-    seedDesc: 'Derived from mnemonic using PBKDF2 HMAC-SHA512 with 2048 iterations.',
-    copySeed: 'Copy Seed',
-    rootXprvTitle: 'BIP32 Root Extended Private Key (xprv)',
-    rootXpubTitle: 'BIP32 Root Extended Public Key (xpub)',
-    copyXprv: 'Copy xprv',
-    copyXpub: 'Copy xpub',
-    copy: 'Copy',
-    copied: 'Copied!',
-    emptyTitle: 'Generate a new hierarchical wallet',
-    emptyDesc:
-      'Choose the mnemonic length (12 or 24 words) and click "Generate" to compute the BIP39 seed, BIP32 root, and render the BIP44 / BIP84 / BIP86 tree graph.',
-  },
-};
-
-function CopyIcon() {
-  return (
-    <svg className="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2">
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg className="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2.5">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
+import { CheckIcon, CopyIcon } from './IntermediateNodes';
+import MnemonicPhrase from './MnemonicPhrase';
 
 function ShieldIcon() {
   return (
@@ -197,25 +73,41 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState<boolean>(false);
   const langMenuRef = useRef<HTMLDivElement | null>(null);
   const [standard, setStandard] = useState<BipStandard>('bip44');
+  const [coin, setCoin] = useState<CoinId>('btc');
+  const [account, setAccount] = useState<number>(0);
+  const [change, setChange] = useState<ChangeIndex>(0);
   const [walletCache, setWalletCache] = useState<LanguageWalletCache>({});
   const [addressOffset, setAddressOffset] = useState<number>(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showWipedToast, setShowWipedToast] = useState<boolean>(false);
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
   const [hidePrivateInfo, setHidePrivateInfo] = useState<boolean>(false);
+  const [isCustomMnemonic, setIsCustomMnemonic] = useState<boolean>(false);
+  const [customWords, setCustomWords] = useState<string[]>(() => Array<string>(24).fill(''));
+  const customWordInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   // Keep a reference to all cached language wallet instances for cleanup
   const walletCacheRef = useRef<LanguageWalletCache>({});
 
   const activeEntry = walletCache[mnemonicLanguage] ?? null;
   const wallet = activeEntry?.wallet ?? null;
-  const standardCache = useMemo(() => activeEntry?.standardCache ?? {}, [activeEntry]);
+  const branchCache = useMemo(() => activeEntry?.branchCache ?? {}, [activeEntry]);
 
   const selectedLanguageOption = useMemo(
     () =>
       MNEMONIC_LANGUAGE_OPTIONS.find((option) => option.id === mnemonicLanguage) ??
       MNEMONIC_LANGUAGE_OPTIONS[0],
     [mnemonicLanguage],
+  );
+
+  const customValidation = useMemo(
+    () => validateUserMnemonic(customWords.slice(0, wordCount), mnemonicLanguage),
+    [customWords, wordCount, mnemonicLanguage],
+  );
+
+  const filledCustomWordsCount = useMemo(
+    () => customWords.slice(0, wordCount).filter((w) => w.trim() !== '').length,
+    [customWords, wordCount],
   );
 
   // Close language dropdown on outside click or Escape key
@@ -244,29 +136,60 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
   }, [isLangMenuOpen]);
 
   /**
-   * Ensures a language entry has intermediate nodes and addresses for (targetStandard, targetOffset) cached.
+   * Ensures a language entry has intermediate nodes and addresses for the given branch and offset cached.
+   * When `fromDepth` (3 or 4) and `previousNodes` are provided, keeps earlier depths untouched
+   * and recalculates only from `fromDepth` downward.
    */
-  const ensureStandardDerived = (
+  const ensureBranchDerived = (
     entry: LanguageWalletEntry,
     targetStandard: BipStandard,
+    targetCoin: CoinId,
+    targetAccount: number,
+    targetChange: ChangeIndex,
     targetOffset: number,
+    incremental?: { fromDepth: 3 | 4; previousNodes: IntermediateNodeData[] },
   ): LanguageWalletEntry => {
-    const existing = entry.standardCache[targetStandard];
+    const key = getBranchKey(targetStandard, targetCoin, targetAccount, targetChange);
+    const existing = entry.branchCache[key];
     if (existing?.addressesByOffset[targetOffset]) {
       return entry;
     }
 
-    const intermediateNodes =
-      existing?.intermediateNodes ?? entry.wallet.getIntermediateNodes(targetStandard);
+    const params: DerivationParams = {
+      coin: targetCoin,
+      account: targetAccount,
+      change: targetChange,
+    };
+
+    let intermediateNodes: IntermediateNodeData[];
+    if (existing?.intermediateNodes) {
+      intermediateNodes = existing.intermediateNodes;
+    } else if (incremental && incremental.previousNodes.length === 5) {
+      if (incremental.fromDepth === 4) {
+        intermediateNodes = [
+          ...incremental.previousNodes.slice(0, 4),
+          entry.wallet.getIntermediateNodeAtDepth(targetStandard, 4, params),
+        ];
+      } else {
+        intermediateNodes = [
+          ...incremental.previousNodes.slice(0, 3),
+          entry.wallet.getIntermediateNodeAtDepth(targetStandard, 3, params),
+          entry.wallet.getIntermediateNodeAtDepth(targetStandard, 4, params),
+        ];
+      }
+    } else {
+      intermediateNodes = entry.wallet.getIntermediateNodes(targetStandard, params);
+    }
+
     const nextAddresses =
       existing?.addressesByOffset[targetOffset] ??
-      entry.wallet.getAddresses(targetStandard, targetOffset, 10);
+      entry.wallet.getAddresses(targetStandard, targetOffset, 10, params);
 
     return {
       wallet: entry.wallet,
-      standardCache: {
-        ...entry.standardCache,
-        [targetStandard]: {
+      branchCache: {
+        ...entry.branchCache,
+        [key]: {
           intermediateNodes,
           addressesByOffset: {
             ...existing?.addressesByOffset,
@@ -288,6 +211,8 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
     setWalletCache({});
     setAddressOffset(0);
     setCopiedId(null);
+    setCustomWords(Array<string>(24).fill(''));
+    setIsCustomMnemonic(false);
   }, []);
 
   // Cleanup on unmount (e.g. navigation, modal close, escape key)
@@ -322,14 +247,135 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
     setTimeout(() => setShowWipedToast(false), 3000);
   };
 
+  const applyCustomMnemonicToWallet = (
+    nextWords: string[],
+    targetWordCount: 12 | 24,
+    targetLanguage: MnemonicLanguage,
+  ) => {
+    const validation = validateUserMnemonic(nextWords.slice(0, targetWordCount), targetLanguage);
+    for (const entry of Object.values(walletCacheRef.current)) {
+      entry?.wallet.wipe();
+    }
+    walletCacheRef.current = {};
+
+    if (!validation.valid) {
+      setWalletCache({});
+      setAddressOffset(0);
+      return;
+    }
+
+    const customWallet = deriveHdWalletFromMnemonic(validation.normalizedMnemonic, targetLanguage);
+    const initialEntry = ensureBranchDerived(
+      { wallet: customWallet, branchCache: {} },
+      standard,
+      coin,
+      account,
+      change,
+      0,
+    );
+    const nextCache: LanguageWalletCache = {
+      [targetLanguage]: initialEntry,
+    };
+    walletCacheRef.current = nextCache;
+    setWalletCache(nextCache);
+    setAddressOffset(0);
+  };
+
+  const handleToggleCustomMnemonic = () => {
+    const nextActive = !isCustomMnemonic;
+    setIsCustomMnemonic(nextActive);
+    if (nextActive) {
+      applyCustomMnemonicToWallet(customWords, wordCount, mnemonicLanguage);
+    } else {
+      for (const entry of Object.values(walletCacheRef.current)) {
+        entry?.wallet.wipe();
+      }
+      walletCacheRef.current = {};
+      setWalletCache({});
+      setAddressOffset(0);
+    }
+  };
+
+  const handleClearCustomMnemonic = () => {
+    const emptyWords = Array<string>(24).fill('');
+    setCustomWords(emptyWords);
+    if (isCustomMnemonic) {
+      for (const entry of Object.values(walletCacheRef.current)) {
+        entry?.wallet.wipe();
+      }
+      walletCacheRef.current = {};
+      setWalletCache({});
+      setAddressOffset(0);
+      setIsCustomMnemonic(false);
+    }
+  };
+
+  const handleWordCountChange = (nextCount: 12 | 24) => {
+    if (nextCount === wordCount) return;
+    setWordCount(nextCount);
+    if (isCustomMnemonic) {
+      applyCustomMnemonicToWallet(customWords, nextCount, mnemonicLanguage);
+    }
+  };
+
+  const handleCustomWordChange = (index: number, rawValue: string) => {
+    const nextWords = [...customWords];
+    let nextWordCount = wordCount;
+    let focusIndex: number | null = null;
+
+    if (/\s/.test(rawValue)) {
+      const tokens = rawValue.trim().split(/\s+/).filter(Boolean);
+      if (tokens.length > 1) {
+        const startIdx = index === 0 || tokens.length >= 12 ? 0 : index;
+        if (startIdx + tokens.length > 12) {
+          nextWordCount = 24;
+        } else if (startIdx === 0 && tokens.length === 12) {
+          nextWordCount = 12;
+        }
+        tokens.slice(0, 24 - startIdx).forEach((token, offset) => {
+          nextWords[startIdx + offset] = token;
+        });
+        const nextEmpty = nextWords
+          .slice(0, nextWordCount)
+          .findIndex((w, idx) => idx >= startIdx && w.trim() === '');
+        focusIndex = nextEmpty !== -1 ? nextEmpty : Math.min(nextWordCount - 1, startIdx + tokens.length - 1);
+      } else {
+        nextWords[index] = tokens[0] ?? '';
+        if (tokens.length === 1 && index + 1 < nextWordCount) {
+          focusIndex = index + 1;
+        }
+      }
+    } else {
+      nextWords[index] = rawValue;
+    }
+
+    if (nextWordCount !== wordCount) {
+      setWordCount(nextWordCount);
+    }
+    setCustomWords(nextWords);
+    setIsCustomMnemonic(true);
+    applyCustomMnemonicToWallet(nextWords, nextWordCount, mnemonicLanguage);
+
+    if (focusIndex !== null) {
+      requestAnimationFrame(() => {
+        customWordInputRefs.current[focusIndex]?.focus();
+      });
+    }
+  };
+
   /**
-   * Derive only the currently selected language & standard on Generate; alternate languages and standards
-   * are computed lazily on first switch and kept cached until wipe/regenerate.
+   * Derive only the currently selected language, standard, coin, account & change on Generate;
+   * alternate branches are computed lazily on first switch and kept cached until wipe/regenerate.
    */
   const handleGenerate = () => {
     setIsCalculating(true);
+    setIsCustomMnemonic(false);
+    setCustomWords(Array<string>(24).fill(''));
     const activeStandard = standard;
     const activeLanguage = mnemonicLanguage;
+    const activeCoin = coin;
+    const activeAccount = account;
+    const activeChange = change;
     // Microtask to allow UI to show calculation state
     setTimeout(() => {
       for (const entry of Object.values(walletCacheRef.current)) {
@@ -338,9 +384,12 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
       walletCacheRef.current = {};
 
       const newWallet = generateHdWallet(wordCount, activeLanguage);
-      const initialEntry = ensureStandardDerived(
-        { wallet: newWallet, standardCache: {} },
+      const initialEntry = ensureBranchDerived(
+        { wallet: newWallet, branchCache: {} },
         activeStandard,
+        activeCoin,
+        activeAccount,
+        activeChange,
         0,
       );
 
@@ -364,11 +413,23 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
 
     const sourceEntry = walletCacheRef.current[mnemonicLanguage];
     setMnemonicLanguage(nextLanguage);
-    if (!sourceEntry) return;
+    if (!sourceEntry) {
+      if (isCustomMnemonic) {
+        applyCustomMnemonicToWallet(customWords, wordCount, nextLanguage);
+      }
+      return;
+    }
 
     const existingTarget = walletCacheRef.current[nextLanguage];
     if (existingTarget) {
-      const updatedTarget = ensureStandardDerived(existingTarget, standard, addressOffset);
+      const updatedTarget = ensureBranchDerived(
+        existingTarget,
+        standard,
+        coin,
+        account,
+        change,
+        addressOffset,
+      );
       if (updatedTarget !== existingTarget) {
         const nextCache: LanguageWalletCache = {
           ...walletCacheRef.current,
@@ -376,6 +437,10 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
         };
         walletCacheRef.current = nextCache;
         setWalletCache(nextCache);
+      }
+      if (isCustomMnemonic) {
+        const translatedWords = existingTarget.wallet.mnemonic.split(/\s+/);
+        setCustomWords([...translatedWords, ...Array<string>(24 - translatedWords.length).fill('')]);
       }
       return;
     }
@@ -386,14 +451,51 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
       nextLanguage,
       sourceEntry.wallet.wordCount,
     );
-    const nextEntry = ensureStandardDerived(
-      { wallet: translatedWallet, standardCache: {} },
+    const nextEntry = ensureBranchDerived(
+      { wallet: translatedWallet, branchCache: {} },
       standard,
+      coin,
+      account,
+      change,
       addressOffset,
     );
     const nextCache: LanguageWalletCache = {
       ...walletCacheRef.current,
       [nextLanguage]: nextEntry,
+    };
+    walletCacheRef.current = nextCache;
+    setWalletCache(nextCache);
+    if (isCustomMnemonic) {
+      const translatedWords = translatedWallet.mnemonic.split(/\s+/);
+      setCustomWords([...translatedWords, ...Array<string>(24 - translatedWords.length).fill('')]);
+    }
+  };
+
+  const updateCurrentBranchCache = (
+    targetStandard: BipStandard,
+    targetCoin: CoinId,
+    targetAccount: number,
+    targetChange: ChangeIndex,
+    targetOffset: number,
+    incremental?: { fromDepth: 3 | 4; previousNodes: IntermediateNodeData[] },
+  ) => {
+    const currentEntry = walletCacheRef.current[mnemonicLanguage];
+    if (!currentEntry) return;
+
+    const updatedEntry = ensureBranchDerived(
+      currentEntry,
+      targetStandard,
+      targetCoin,
+      targetAccount,
+      targetChange,
+      targetOffset,
+      incremental,
+    );
+    if (updatedEntry === currentEntry) return;
+
+    const nextCache: LanguageWalletCache = {
+      ...walletCacheRef.current,
+      [mnemonicLanguage]: updatedEntry,
     };
     walletCacheRef.current = nextCache;
     setWalletCache(nextCache);
@@ -405,36 +507,66 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
    */
   const handleStandardChange = (nextStandard: BipStandard) => {
     setStandard(nextStandard);
-    const currentEntry = walletCacheRef.current[mnemonicLanguage];
-    if (!currentEntry) return;
+    updateCurrentBranchCache(nextStandard, coin, account, change, addressOffset);
+  };
 
-    const updatedEntry = ensureStandardDerived(currentEntry, nextStandard, addressOffset);
-    if (updatedEntry === currentEntry) return;
+  /**
+   * Switch coin type at Depth 2: recalculates Depth 2 and subsequent depths (Depth 3, 4, 5).
+   */
+  const handleCoinChange = (nextCoin: CoinId) => {
+    if (nextCoin === coin) return;
+    setCoin(nextCoin);
+    setAddressOffset(0);
+    updateCurrentBranchCache(standard, nextCoin, account, change, 0);
+  };
 
-    const nextCache: LanguageWalletCache = {
-      ...walletCacheRef.current,
-      [mnemonicLanguage]: updatedEntry,
-    };
-    walletCacheRef.current = nextCache;
-    setWalletCache(nextCache);
+  /**
+   * Switch account index at Depth 3: preserves Depth 0..2 and recalculates only Depth 3, 4, and 5.
+   */
+  const handleAccountChange = (nextAccount: number) => {
+    const clamped = Math.max(0, Math.min(0x7fffffff, Math.floor(nextAccount)));
+    if (clamped === account) return;
+    const prevNodes =
+      walletCacheRef.current[mnemonicLanguage]?.branchCache[
+        getBranchKey(standard, coin, account, change)
+      ]?.intermediateNodes;
+    setAccount(clamped);
+    setAddressOffset(0);
+    updateCurrentBranchCache(
+      standard,
+      coin,
+      clamped,
+      change,
+      0,
+      prevNodes ? { fromDepth: 3, previousNodes: prevNodes } : undefined,
+    );
+  };
+
+  /**
+   * Switch external/internal chain at Depth 4: preserves Depth 0..3 and recalculates only Depth 4 and 5.
+   */
+  const handleChangeIndexChange = (nextChange: ChangeIndex) => {
+    if (nextChange === change) return;
+    const prevNodes =
+      walletCacheRef.current[mnemonicLanguage]?.branchCache[
+        getBranchKey(standard, coin, account, change)
+      ]?.intermediateNodes;
+    setChange(nextChange);
+    setAddressOffset(0);
+    updateCurrentBranchCache(
+      standard,
+      coin,
+      account,
+      nextChange,
+      0,
+      prevNodes ? { fromDepth: 4, previousNodes: prevNodes } : undefined,
+    );
   };
 
   const deriveOffsetIfMissing = (targetOffset: number) => {
-    const currentEntry = walletCacheRef.current[mnemonicLanguage];
-    if (!currentEntry) return;
-
-    const updatedEntry = ensureStandardDerived(currentEntry, standard, targetOffset);
     setAddressOffset(targetOffset);
-    if (updatedEntry === currentEntry) return;
-
-    const nextCache: LanguageWalletCache = {
-      ...walletCacheRef.current,
-      [mnemonicLanguage]: updatedEntry,
-    };
-    walletCacheRef.current = nextCache;
-    setWalletCache(nextCache);
+    updateCurrentBranchCache(standard, coin, account, change, targetOffset);
   };
-
 
   const handleNext10 = () => {
     deriveOffsetIfMissing(addressOffset + 10);
@@ -444,16 +576,16 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
     deriveOffsetIfMissing(0);
   };
 
-  // Memorize active tree nodes and addresses for the selected standard and offset
+  // Memorize active tree nodes and addresses for the selected branch and offset
   const activeTreeData = useMemo(() => {
     if (!wallet) return null;
-    const entry = standardCache[standard];
+    const entry = branchCache[getBranchKey(standard, coin, account, change)];
     if (!entry) return null;
     return {
       intermediateNodes: entry.intermediateNodes,
       addresses: entry.addressesByOffset[addressOffset] ?? [],
     };
-  }, [wallet, standardCache, standard, addressOffset]);
+  }, [wallet, branchCache, standard, coin, account, change, addressOffset]);
 
   // Clipboard copy handler with feedback
   const handleCopy = async (text: string, id: string) => {
@@ -547,8 +679,25 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
           </div>
 
           <div>
-            <span className="inline-block text-xs font-bold px-3.5 py-1.5 rounded-full bg-bitpolito/10 text-bitpolito border border-bitpolito/20 dark:bg-white/15 dark:text-white dark:border-white/30">
-              {t.statusBadge}
+            <span className="inline-flex flex-wrap items-center gap-1 text-xs font-bold px-3.5 py-1.5 rounded-full bg-bitpolito/10 text-bitpolito border border-bitpolito/20 dark:bg-white/15 dark:text-white dark:border-white/30">
+              {BIP_SPECS.map((bip) => (
+                <span key={bip.label} className="inline-flex items-center gap-1">
+                  <a
+                    href={bip.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={t.bipLinkTitle(bip.label)}
+                    className="underline decoration-bitpolito/40 dark:decoration-white/40 hover:decoration-current underline-offset-2 transition-colors focus:outline-none focus:decoration-current"
+                  >
+                    {bip.label}
+                  </a>
+                  {bip.separatorAfter && (
+                    <span aria-hidden="true" className="opacity-70">
+                      {bip.separatorAfter}
+                    </span>
+                  )}
+                </span>
+              ))}
             </span>
           </div>
         </div>
@@ -588,8 +737,8 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
                     value={wordCount}
                     onChange={(e) => {
                       const val = Number.parseInt(e.target.value, 10);
-                      if (val === 24) setWordCount(24);
-                      else setWordCount(12);
+                      if (val === 24) handleWordCountChange(24);
+                      else handleWordCountChange(12);
                     }}
                     className="w-20 sm:w-24 px-2.5 py-2 rounded-xl font-mono text-sm font-extrabold text-center bg-white dark:bg-black/30 border-2 border-bitpolito/50 dark:border-white/50 text-bitpolito dark:text-white focus:outline-none focus:border-bitpolito dark:focus:border-white shadow-xs"
                   />
@@ -602,7 +751,7 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setWordCount(12)}
+                    onClick={() => handleWordCountChange(12)}
                     className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                       wordCount === 12
                         ? 'bg-bitpolito text-white dark:bg-white dark:text-bitpolito shadow-sm'
@@ -613,7 +762,7 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setWordCount(24)}
+                    onClick={() => handleWordCountChange(24)}
                     className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                       wordCount === 24
                         ? 'bg-bitpolito text-white dark:bg-white dark:text-bitpolito shadow-sm'
@@ -773,6 +922,23 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
               />
             </button>
           </div>
+
+          {/* Custom Seed Phrase Input Box */}
+          <MnemonicPhrase
+            lang={lang}
+            wordCount={wordCount}
+            languageLabel={selectedLanguageOption.label}
+            customWords={customWords}
+            filledCustomWordsCount={filledCustomWordsCount}
+            isCustomMnemonic={isCustomMnemonic}
+            hidePrivateInfo={hidePrivateInfo}
+            customValidation={customValidation}
+            inputRefs={customWordInputRefs}
+            onWordCountChange={handleWordCountChange}
+            onClear={handleClearCustomMnemonic}
+            onToggleCustomMnemonic={handleToggleCustomMnemonic}
+            onCustomWordChange={handleCustomWordChange}
+          />
         </div>
 
         {/* Empty state before first generation */}
@@ -816,53 +982,55 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
               </div>
             ) : (
               <>
-                {/* BIP39 Mnemonic Phrase Section */}
-                <div className="p-5 sm:p-6 rounded-2xl bg-white/70 dark:bg-white/5 border border-bitpolito/30 dark:border-white/30 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                    <div>
-                      <h4 className="text-base font-extrabold text-bitpolito dark:text-white">
-                        {t.mnemonicTitle} ({wallet.wordCount} words)
-                      </h4>
-                      <p className="text-xs text-bitpolito/70 dark:text-white/70">
-                        {t.mnemonicDesc(selectedLanguageOption.label)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(wallet.mnemonic, 'mnemonic')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-bitpolito/10 dark:bg-white/15 text-bitpolito dark:text-white hover:bg-bitpolito hover:text-white dark:hover:bg-white dark:hover:text-bitpolito transition-colors cursor-pointer self-start sm:self-auto"
-                    >
-                      {copiedId === 'mnemonic' ? (
-                        <>
-                          <CheckIcon />
-                          <span>{t.copied}</span>
-                        </>
-                      ) : (
-                        <>
-                          <CopyIcon />
-                          <span>{t.copyMnemonic}</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Numbered words grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 pt-1">
-                    {wallet.mnemonic.split(/\s+/).map((word, idx) => (
-                      <div
-                        key={`${idx}-${word}`}
-                        className="flex items-center gap-2 p-2 rounded-xl bg-white dark:bg-black/30 border border-bitpolito/20 dark:border-white/20 shadow-2xs"
-                      >
-                        <span className="w-5 text-right font-mono text-[10px] font-black text-bitpolito/50 dark:text-white/50 select-none">
-                          {idx + 1}.
-                        </span>
-                        <span className="font-mono text-xs sm:text-sm font-bold text-bitpolito dark:text-white select-all">
-                          {word}
-                        </span>
+                {/* BIP39 Mnemonic Phrase Section (disabled when user supplies a custom mnemonic) */}
+                {!isCustomMnemonic && (
+                  <div className="p-5 sm:p-6 rounded-2xl bg-white/70 dark:bg-white/5 border border-bitpolito/30 dark:border-white/30 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                      <div>
+                        <h4 className="text-base font-extrabold text-bitpolito dark:text-white">
+                          {t.mnemonicTitle} ({wallet.wordCount} words)
+                        </h4>
+                        <p className="text-xs text-bitpolito/70 dark:text-white/70">
+                          {t.mnemonicDesc(selectedLanguageOption.label)}
+                        </p>
                       </div>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(wallet.mnemonic, 'mnemonic')}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-bitpolito/10 dark:bg-white/15 text-bitpolito dark:text-white hover:bg-bitpolito hover:text-white dark:hover:bg-white dark:hover:text-bitpolito transition-colors cursor-pointer self-start sm:self-auto"
+                      >
+                        {copiedId === 'mnemonic' ? (
+                          <>
+                            <CheckIcon />
+                            <span>{t.copied}</span>
+                          </>
+                        ) : (
+                          <>
+                            <CopyIcon />
+                            <span>{t.copyMnemonic}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Numbered words grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 pt-1">
+                      {wallet.mnemonic.split(/\s+/).map((word, idx) => (
+                        <div
+                          key={`${idx}-${word}`}
+                          className="flex items-center gap-2 p-2 rounded-xl bg-white dark:bg-black/30 border border-bitpolito/20 dark:border-white/20 shadow-2xs"
+                        >
+                          <span className="w-5 text-right font-mono text-[10px] font-black text-bitpolito/50 dark:text-white/50 select-none">
+                            {idx + 1}.
+                          </span>
+                          <span className="font-mono text-xs sm:text-sm font-bold text-bitpolito dark:text-white select-all">
+                            {word}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* BIP39 Seed (512-bit) */}
                 <div className="p-5 sm:p-6 rounded-2xl bg-white/70 dark:bg-white/5 border border-bitpolito/30 dark:border-white/30 shadow-xs">
@@ -909,6 +1077,12 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
                 key={`${hidePrivateInfo ? 'hidden' : 'visible'}-${standard}-${mnemonicLanguage}`}
                 lang={lang}
                 standard={standard}
+                coin={coin}
+                account={account}
+                change={change}
+                onCoinChange={handleCoinChange}
+                onAccountChange={handleAccountChange}
+                onChangeIndexChange={handleChangeIndexChange}
                 intermediateNodes={activeTreeData.intermediateNodes}
                 addresses={activeTreeData.addresses}
                 addressOffset={addressOffset}

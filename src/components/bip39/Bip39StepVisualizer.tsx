@@ -1,17 +1,12 @@
 import { useState } from 'react';
-import type { Language } from '../../App';
 import {
   computeBip39FromEntropyBits,
   binaryStringToHex,
-  type WordCountTarget,
   type Bip39WordInfo,
 } from '../../utils/entropyUtils';
+import type { Bip39StepVisualizerProps } from './utils/interfaceUI';
 
-export interface Bip39StepVisualizerProps {
-  lang?: Language;
-  bits: string;
-  targetWords: WordCountTarget;
-}
+export type { Bip39StepVisualizerProps } from './utils/interfaceUI';
 
 const CONTENT = {
   it: {

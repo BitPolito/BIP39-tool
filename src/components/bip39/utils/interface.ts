@@ -2,6 +2,10 @@ import type { HDKey } from '@scure/bip32';
 
 export type BipStandard = 'bip44' | 'bip84' | 'bip86';
 
+export type CoinId = 'btc' | 'btc-regtest' | 'ltc';
+
+export type ChangeIndex = 0 | 1;
+
 export type MnemonicLanguage =
   | 'english'
   | 'japanese'
@@ -13,6 +17,40 @@ export type MnemonicLanguage =
   | 'korean'
   | 'czech'
   | 'portuguese';
+
+export interface CoinNetwork {
+  bech32: string;
+  pubKeyHash: number;
+  scriptHash: number;
+  wif: number;
+}
+
+export interface CoinConfig {
+  id: CoinId;
+  coinType: number;
+  labelIt: string;
+  labelEn: string;
+  addressCoinLabelIt: string;
+  addressCoinLabelEn: string;
+  descIt: string;
+  descEn: string;
+  network: CoinNetwork;
+  versionsByStandard: Record<BipStandard, { private: number; public: number }>;
+}
+
+export interface DerivationParams {
+  coin?: CoinId;
+  coinType?: number;
+  account?: number;
+  change?: ChangeIndex;
+}
+
+export interface ResolvedDerivationParams {
+  coin: CoinId;
+  coinType: number;
+  account: number;
+  change: ChangeIndex;
+}
 
 export interface Bip44LevelInfo {
   depth: number;
@@ -49,8 +87,18 @@ export interface HdWallet {
   mnemonic: string;
   seedHex: string;
   rootNode: HDKey;
-  getIntermediateNodes: (standard: BipStandard) => IntermediateNodeData[];
-  getAddresses: (standard: BipStandard, offset: number, count: number) => AddressLeafData[];
+  getIntermediateNodes: (standard: BipStandard, params?: DerivationParams) => IntermediateNodeData[];
+  getIntermediateNodeAtDepth: (
+    standard: BipStandard,
+    depth: 0 | 1 | 2 | 3 | 4,
+    params?: DerivationParams,
+  ) => IntermediateNodeData;
+  getAddresses: (
+    standard: BipStandard,
+    offset: number,
+    count: number,
+    params?: DerivationParams,
+  ) => AddressLeafData[];
   wipe: () => void;
 }
 
@@ -71,11 +119,17 @@ export type LevelDefinition = Omit<
 >;
 
 export interface StandardConfig {
+  purposeIndex: number;
   purposeSegment: string;
-  changePath: string;
-  // SLIP-0132 version bytes for mainnet extended keys (xprv/xpub for BIP44 & BIP86, zprv/zpub for BIP84)
-  versions: { private: number; public: number };
   purposeDescIt: string;
   purposeDescEn: string;
-  deriveAddress: (pubKey: Uint8Array) => string;
+  deriveAddress: (pubKey: Uint8Array, network: CoinNetwork) => string;
+}
+
+export interface MnemonicValidationResult {
+  valid: boolean;
+  normalizedMnemonic: string;
+  wordCount: 12 | 24 | null;
+  invalidWordIndices: number[];
+  errorCode?: 'word_count' | 'invalid_word' | 'checksum';
 }
