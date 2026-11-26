@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import EntropyVisualizer from './components/entropy/EntropyVisualizer';
 import Bip39 from './components/bip39/Bip39';
 
@@ -22,6 +22,48 @@ import iconEmail from './assets/icons/icon-email.svg';
 
 export type Language = 'it' | 'en';
 export type Theme = 'light' | 'dark';
+type ConnectionStatus = 'checking' | 'online' | 'offline';
+
+const CONNECTIVITY_PROBE_URLS = [
+  'https://connectivitycheck.gstatic.com/generate_204',
+  'https://cp.cloudflare.com/generate_204',
+];
+const CONNECTIVITY_TIMEOUT_MS = 2500;
+const CONNECTIVITY_POLL_INTERVAL_MS = 5000;
+
+async function probeNetworkReachability(signal: AbortSignal): Promise<boolean> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return false;
+  }
+
+  const probeController = new AbortController();
+  const forwardAbort = () => probeController.abort();
+  signal.addEventListener('abort', forwardAbort, { once: true });
+  const timeoutId = window.setTimeout(() => probeController.abort(), CONNECTIVITY_TIMEOUT_MS);
+
+  try {
+    const cacheBuster = Date.now();
+    await Promise.any(
+      CONNECTIVITY_PROBE_URLS.map((url) =>
+        fetch(`${url}?_=${cacheBuster}`, {
+          method: 'GET',
+          mode: 'no-cors',
+          cache: 'no-store',
+          credentials: 'omit',
+          referrerPolicy: 'no-referrer',
+          signal: probeController.signal,
+        }),
+      ),
+    );
+    return true;
+  } catch {
+    return false;
+  } finally {
+    window.clearTimeout(timeoutId);
+    signal.removeEventListener('abort', forwardAbort);
+    probeController.abort();
+  }
+}
 
 interface SocialLink {
   name: string;
@@ -92,6 +134,12 @@ const CONTENT = {
     close: 'Chiudi',
     footerTeam: 'BitPolito • Team Studentesco Bitcoin @ Politecnico di Torino',
     cowsAria: 'Simbolo delle mucche BitPolito',
+    statusOnline: 'Online • Connesso',
+    statusOffline: 'Offline • Disconnesso',
+    statusChecking: 'Verifica rete...',
+    onlineHint: 'Connessione di rete attiva rilevata. Clicca per ricontrollare.',
+    offlineHint: 'Nessuna connessione di rete rilevata. Clicca per ricontrollare.',
+    checkingHint: 'Verifica della connettività di rete in corso...',
   },
   en: {
     siteTitle: 'BIP39 tool',
@@ -112,6 +160,12 @@ const CONTENT = {
     close: 'Close',
     footerTeam: 'BitPolito • Bitcoin Student Team @ Politecnico di Torino',
     cowsAria: 'BitPolito Cows Symbol',
+    statusOnline: 'Online • Connected',
+    statusOffline: 'Offline • Disconnected',
+    statusChecking: 'Checking network...',
+    onlineHint: 'Active network connection detected. Click to recheck.',
+    offlineHint: 'No network connection detected. Click to recheck.',
+    checkingHint: 'Checking network connectivity...',
   },
 };
 
@@ -130,6 +184,28 @@ function App() {
 
   const [showEntropyVisualizer, setShowEntropyVisualizer] = useState<boolean>(false);
   const [showBip39, setShowBip39] = useState<boolean>(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(() =>
+    typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'checking',
+  );
+  const probeControllerRef = useRef<AbortController | null>(null);
+
+  const startConnectivityProbe = useCallback(() => {
+    probeControllerRef.current?.abort();
+    const controller = new AbortController();
+    probeControllerRef.current = controller;
+    void probeNetworkReachability(controller.signal).then((reachable) => {
+      if (!controller.signal.aborted) {
+        setConnectionStatus(reachable ? 'online' : 'offline');
+      }
+    });
+  }, []);
+
+  const handleRecheckConnectivity = () => {
+    setConnectionStatus(
+      typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'checking',
+    );
+    startConnectivityProbe();
+  };
 
   useEffect(() => {
     localStorage.setItem('bitpolito_lang', lang);
@@ -164,6 +240,42 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Track browser and actual network connectivity status
+  useEffect(() => {
+    startConnectivityProbe();
+
+    const handleOnline = () => {
+      startConnectivityProbe();
+    };
+    const handleOffline = () => {
+      probeControllerRef.current?.abort();
+      probeControllerRef.current = null;
+      setConnectionStatus('offline');
+    };
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        startConnectivityProbe();
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    const intervalId = window.setInterval(() => {
+      startConnectivityProbe();
+    }, CONNECTIVITY_POLL_INTERVAL_MS);
+
+    return () => {
+      probeControllerRef.current?.abort();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.clearInterval(intervalId);
+    };
+  }, [startConnectivityProbe]);
+
   const t = CONTENT[lang];
   const isDark = theme === 'dark';
 
@@ -171,22 +283,64 @@ function App() {
     <div className="min-h-screen w-full bg-[#F9F9F9] dark:bg-bitpolito text-bitpolito dark:text-white transition-colors duration-250 flex flex-col justify-between">
       <div className="w-full max-w-6xl mx-auto px-5 sm:px-6 flex flex-col min-h-screen">
         {/* HEADER */}
-        <header className="flex items-center justify-between py-6 border-b border-bitpolito/20 dark:border-white/25 transition-colors duration-250">
-          <div
-            className="flex items-center gap-3 select-none group cursor-pointer"
-            onClick={() => {
-              setShowEntropyVisualizer(false);
-              setShowBip39(false);
-            }}
-          >
-            <img
-              src={isDark ? cowIconWhite : cowIconBlue}
-              alt="BitPolito"
-              className="w-9 h-9 object-contain transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-6"
-            />
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-none text-bitpolito dark:text-white transition-colors duration-250">
-              {t.siteTitle}
-            </h1>
+        <header className="flex flex-wrap items-center justify-between gap-3 py-6 border-b border-bitpolito/20 dark:border-white/25 transition-colors duration-250">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <div
+              className="flex items-center gap-3 select-none group cursor-pointer"
+              onClick={() => {
+                setShowEntropyVisualizer(false);
+                setShowBip39(false);
+              }}
+            >
+              <img
+                src={isDark ? cowIconWhite : cowIconBlue}
+                alt="BitPolito"
+                className="w-9 h-9 object-contain transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-6"
+              />
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-none text-bitpolito dark:text-white transition-colors duration-250">
+                {t.siteTitle}
+              </h1>
+            </div>
+
+            {/* Online / Offline Status Banner */}
+            <button
+              type="button"
+              role="status"
+              aria-live="polite"
+              onClick={handleRecheckConnectivity}
+              title={
+                connectionStatus === 'online'
+                  ? t.onlineHint
+                  : connectionStatus === 'offline'
+                    ? t.offlineHint
+                    : t.checkingHint
+              }
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold shadow-xs transition-colors duration-250 cursor-pointer ${
+                connectionStatus === 'online'
+                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-800 dark:bg-amber-400/15 dark:border-amber-400/40 dark:text-amber-200'
+                  : connectionStatus === 'offline'
+                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-800 dark:bg-emerald-400/15 dark:border-emerald-400/40 dark:text-emerald-200'
+                    : 'bg-bitpolito/10 border-bitpolito/30 text-bitpolito dark:bg-white/10 dark:border-white/30 dark:text-white'
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  connectionStatus === 'online'
+                    ? 'bg-amber-500 dark:bg-amber-400 animate-pulse'
+                    : connectionStatus === 'offline'
+                      ? 'bg-emerald-500 dark:bg-emerald-400'
+                      : 'bg-bitpolito/60 dark:bg-white/60 animate-pulse'
+                }`}
+                aria-hidden="true"
+              />
+              <span>
+                {connectionStatus === 'online'
+                  ? t.statusOnline
+                  : connectionStatus === 'offline'
+                    ? t.statusOffline
+                    : t.statusChecking}
+              </span>
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -253,6 +407,11 @@ function App() {
           <Bip39
             lang={lang}
             onBack={() => setShowBip39(false)}
+            onOpenEntropyVisualizer={() => {
+              setShowBip39(false);
+              setShowEntropyVisualizer(true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         ) : (
           <main className="flex-1 flex flex-col items-center justify-center py-12 sm:py-16">

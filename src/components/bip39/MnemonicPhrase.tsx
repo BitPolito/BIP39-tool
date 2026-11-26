@@ -22,6 +22,7 @@ export default function MnemonicPhrase({
   onClear,
   onToggleCustomMnemonic,
   onCustomWordChange,
+  onOpenEntropyVisualizer,
 }: MnemonicPhraseProps) {
   const t = CONTENT[lang];
 
@@ -36,6 +37,13 @@ export default function MnemonicPhrase({
             <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-bitpolito/10 dark:bg-white/15 text-bitpolito dark:text-white">
               {t.customMnemonicStatusCount(filledCustomWordsCount, wordCount)}
             </span>
+            <button
+              type="button"
+              onClick={onOpenEntropyVisualizer}
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-bitpolito/30 dark:border-white/30 bg-white dark:bg-white/10 text-bitpolito dark:text-white hover:bg-bitpolito hover:text-white dark:hover:bg-white dark:hover:text-bitpolito transition-colors cursor-pointer"
+            >
+              {t.customMnemonicGenerateEntropy}
+            </button>
           </div>
           <p className="text-[11px] text-bitpolito/70 dark:text-white/70 mt-0.5">
             {t.customMnemonicDesc(wordCount, languageLabel)}

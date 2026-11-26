@@ -64,7 +64,7 @@ function ChevronDownIcon({ className = '' }: { className?: string }) {
   );
 }
 
-export default function Bip39({ lang, onBack }: Bip39Props) {
+export default function Bip39({ lang, onBack, onOpenEntropyVisualizer }: Bip39Props) {
   const t = CONTENT[lang];
 
   // Number input state (12 or 24)
@@ -239,6 +239,11 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
   const handleExit = () => {
     wipe();
     onBack();
+  };
+
+  const handleOpenEntropyVisualizer = () => {
+    wipe();
+    onOpenEntropyVisualizer();
   };
 
   const handleManualWipe = () => {
@@ -938,6 +943,7 @@ export default function Bip39({ lang, onBack }: Bip39Props) {
             onClear={handleClearCustomMnemonic}
             onToggleCustomMnemonic={handleToggleCustomMnemonic}
             onCustomWordChange={handleCustomWordChange}
+            onOpenEntropyVisualizer={handleOpenEntropyVisualizer}
           />
         </div>
 

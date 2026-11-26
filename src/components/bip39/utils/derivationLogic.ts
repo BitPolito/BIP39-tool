@@ -121,7 +121,6 @@ export const COIN_CONFIG: Record<CoinId, CoinConfig> = {
 export const COIN_OPTIONS: CoinConfig[] = [
   COIN_CONFIG['btc'],
   COIN_CONFIG['btc-regtest'],
-  COIN_CONFIG['ltc'],
 ];
 
 const STANDARD_CONFIG: Record<BipStandard, StandardConfig> = {

@@ -34,6 +34,7 @@ export type LanguageWalletCache = Partial<Record<MnemonicLanguage, LanguageWalle
 export interface Bip39Props {
   lang: Language;
   onBack: () => void;
+  onOpenEntropyVisualizer: () => void;
 }
 
 export interface Bip39StepVisualizerProps {
@@ -103,4 +104,5 @@ export interface MnemonicPhraseProps {
   onClear: () => void;
   onToggleCustomMnemonic: () => void;
   onCustomWordChange: (index: number, value: string) => void;
+  onOpenEntropyVisualizer: () => void;
 }
